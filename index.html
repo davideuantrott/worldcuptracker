@@ -895,7 +895,12 @@ async function fetchScores() {
     Object.entries(data).forEach(([id, result]) => {
       const prev = liveResults[id];
       if (!prev || prev.home!==result.home || prev.away!==result.away || prev.status!==result.status) changed = true;
-      liveResults[id] = result;
+      liveResults[id] = {
+        home: parseInt(result.home, 10),
+        away: parseInt(result.away, 10),
+        status: result.status,
+        minute: result.minute != null ? parseInt(result.minute, 10) : null,
+      };
       if (result.status==='LIVE'||result.status==='HT') liveNow++;
     });
     liveCount = liveNow;

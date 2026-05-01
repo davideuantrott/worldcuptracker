@@ -123,6 +123,13 @@ const POLL_INTERVAL = 60000;                              // Normal poll frequen
 |---|---|
 | `FOOTBALL_DATA_API_KEY` | football-data.org API key - set in Vercel dashboard |
 | `BLOB_READ_WRITE_TOKEN` | Auto-set by Vercel Blob |
+| `CRON_SECRET` | Shared secret to protect `/api/update-scores` - must also be set as `X-Cron-Secret` header in cron-job.org |
+
+## Security
+
+- `/api/update-scores` checks the `X-Cron-Secret` request header against `CRON_SECRET` env var - requests without the correct secret are rejected with 401. The check is skipped if `CRON_SECRET` is not set (safe during initial deploy).
+- Score fields (`home`, `away`, `minute`) from `scores.json` are parsed as integers in `fetchScores()` before being stored in `liveResults`, preventing any injected HTML from reaching `innerHTML`.
+- `vercel.json` sets `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy` headers on all responses.
 
 ## Scores polling behaviour
 

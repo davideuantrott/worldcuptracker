@@ -140,6 +140,11 @@ function findLocalMatch(apiHome, apiAway) {
 }
 
 export default async function handler(req, res) {
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && req.headers['x-cron-secret'] !== cronSecret) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
   const apiKey = process.env.FOOTBALL_DATA_API_KEY;
   if (!apiKey) {
     return res.status(500).json({ error: 'FOOTBALL_DATA_API_KEY not set' });
@@ -202,6 +207,6 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('Score update failed:', err);
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: 'Score update failed' });
   }
 }
