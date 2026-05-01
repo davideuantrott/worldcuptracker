@@ -117,6 +117,12 @@ const BASE_URL = 'https://worldcuptracker.vercel.app';    // Live domain
 const POLL_INTERVAL = 60000;                              // Normal poll frequency (ms)
 ```
 
+## Timezone display
+
+Match times are stored as UTC in the `MATCHES` array and converted for display via `toLocal()`.
+
+`toLocal()` manually shifts the UTC timestamp by `tzOffset` hours (derived from `getTimezoneOffset()` at init), then reads the result using **`getUTCHours()`/`getUTCMinutes()`/`getUTCDate()`** — not the non-UTC equivalents. Using `getHours()` etc. would double-apply the browser's local offset (once via the manual shift, once via the JS date internals), showing times 1 hour too late in BST.
+
 ## Environment variables (Vercel)
 
 | Variable | Description |

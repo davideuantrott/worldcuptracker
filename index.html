@@ -432,8 +432,8 @@ function toLocal(dateStr, utcStr) {
   const d = parseKickoff(dateStr, utcStr);
   const local = new Date(d.getTime() + tzOffset * 3600000);
   return {
-    time: `${String(local.getHours()).padStart(2,'0')}:${String(local.getMinutes()).padStart(2,'0')}`,
-    date: `${local.getDate()} ${local.toLocaleString('en-GB',{month:'short'})}`,
+    time: `${String(local.getUTCHours()).padStart(2,'0')}:${String(local.getUTCMinutes()).padStart(2,'0')}`,
+    date: `${local.getUTCDate()} ${local.toLocaleString('en-GB',{month:'short',timeZone:'UTC'})}`,
     localDate: local,
   };
 }
