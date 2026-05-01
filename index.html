@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0a0e1a" />
+  <meta name="theme-color" content="#0c0e0a" />
   <meta name="description" content="FIFA World Cup 2026 - fixtures, results, groups and knockout tracker" />
   <title>WC26 - World Cup 2026</title>
   <link rel="manifest" href="manifest.json" />
@@ -12,16 +12,18 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #080c18;
-      --surface: #0f1525;
-      --surface2: #161d33;
-      --border: #1e2a45;
-      --accent: #e8c14a;
+      --bg: #0c0e0a;
+      --surface: #141a0f;
+      --surface2: #1c2414;
+      --border: #1e2a14;
+      --accent: #c8f000;
+      --accent-muted: rgba(200,240,0,0.12);
+      --accent-border: rgba(200,240,0,0.35);
       --accent2: #5b9cf6;
-      --text: #e8eaf0;
-      --muted: #6b7898;
-      --highlight: rgba(232,193,74,0.1);
-      --highlight-border: #e8c14a;
+      --text: #f0f2eb;
+      --muted: #8a9478;
+      --highlight: rgba(200,240,0,0.10);
+      --highlight-border: #c8f000;
       --possible-bg: rgba(91,156,246,0.08);
       --possible-border: #5b9cf6;
       --live-color: #e8443a;
@@ -32,10 +34,10 @@
     /* HEADER */
     header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;position:sticky;top:0;z-index:100;}
     .header-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:10px;height:54px;}
-    .logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:21px;letter-spacing:1px;color:var(--accent);white-space:nowrap;}
-    .logo span{color:var(--text);}
+    .logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:21px;letter-spacing:1px;color:var(--text);white-space:nowrap;}
+    .logo span{color:var(--accent);}
     .team-select-wrap{flex:1;}
-    #teamSelect{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;padding:8px 30px 8px 10px;border-radius:6px;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7898' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
+    #teamSelect{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;padding:8px 30px 8px 10px;border-radius:6px;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a9478' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;}
     #teamSelect:focus{outline:1px solid var(--accent);}
     .clear-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'Barlow',sans-serif;font-size:13px;padding:7px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
     .clear-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -60,8 +62,8 @@
     .filter-banner{background:var(--highlight);border:1px solid var(--highlight-border);border-radius:7px;padding:9px 12px;margin-bottom:14px;font-size:13px;color:var(--accent);display:none;align-items:center;justify-content:space-between;gap:10px;}
     .filter-banner.visible{display:flex;}
     .filter-banner-left{display:flex;align-items:center;gap:7px;}
-    .cal-bulk-btn{background:rgba(232,193,74,0.15);border:1px solid rgba(232,193,74,0.4);color:var(--accent);font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;padding:5px 10px;border-radius:5px;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
-    .cal-bulk-btn:hover{background:rgba(232,193,74,0.25);}
+    .cal-bulk-btn{background:var(--accent-muted);border:1px solid var(--accent-border);color:var(--accent);font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;padding:5px 10px;border-radius:5px;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+    .cal-bulk-btn:hover{background:rgba(200,240,0,0.22);}
 
     /* SECTION */
     .section{margin-bottom:22px;}
@@ -69,7 +71,7 @@
 
     /* MATCH CARD */
     .match-card{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:10px 12px;margin-bottom:5px;display:flex;align-items:center;gap:10px;transition:border-color 0.15s;position:relative;overflow:hidden;}
-    .match-card:hover{border-color:#2a3a58;}
+    .match-card:hover{border-color:#2d3d1e;}
     .match-card.team-match{border-color:var(--highlight-border);background:var(--highlight);}
     .match-card.team-possible{border-color:var(--possible-border);background:var(--possible-bg);}
     .match-card.is-live{border-color:var(--live-color);}
@@ -86,7 +88,7 @@
     .team-name.home{text-align:right;}
     .team-name.highlighted{color:var(--accent);}
     .score-center{text-align:center;min-width:58px;flex-shrink:0;}
-    .score-nums{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--text);}
+    .score-nums{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;}
     .vs-text{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;color:var(--muted);}
     .match-footer{display:flex;align-items:center;gap:6px;margin-top:5px;flex-wrap:wrap;}
 
@@ -100,8 +102,8 @@
 
     /* STATUS BADGES */
     .match-badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px;}
-    .badge-group{background:rgba(91,156,246,0.12);color:var(--accent2);}
-    .badge-confirmed{background:rgba(232,193,74,0.12);color:var(--accent);}
+    .badge-group{background:var(--accent-muted);color:var(--accent);}
+    .badge-confirmed{background:var(--accent-muted);color:var(--accent);}
     .badge-possible{background:rgba(91,156,246,0.12);color:var(--accent2);}
     .badge-live{background:rgba(232,68,58,0.2);color:var(--live-color);animation:pulse 1.2s infinite;}
     .badge-ht{background:rgba(232,68,58,0.15);color:var(--live-color);}
@@ -109,7 +111,7 @@
 
     /* CALENDAR BUTTON */
     .cal-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:3px 7px;border-radius:4px;cursor:pointer;flex-shrink:0;transition:all 0.15s;display:flex;align-items:center;gap:4px;margin-left:auto;}
-    .cal-btn:hover{border-color:var(--accent2);color:var(--accent2);}
+    .cal-btn:hover{border-color:var(--accent);color:var(--accent);}
     .cal-btn svg{width:11px;height:11px;fill:currentColor;}
 
     /* CALENDAR MODAL */
@@ -137,7 +139,7 @@
     /* GROUPS */
     .groups-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:9px;}
     .group-card{background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:11px 12px;cursor:pointer;transition:all 0.15s;}
-    .group-card:hover{border-color:var(--accent2);}
+    .group-card:hover{border-color:var(--accent);}
     .group-card.active-group{border-color:var(--accent);background:var(--highlight);}
     .group-label{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:7px;}
     .group-team{display:flex;align-items:center;gap:6px;padding:3px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,0.04);}

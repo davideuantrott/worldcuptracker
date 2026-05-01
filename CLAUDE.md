@@ -43,22 +43,29 @@ README.md                   Deployment instructions
 ## Design system
 
 All styles are CSS custom properties defined in `:root` in `index.html`.
+The full token spec lives in `design-system.json`.
 
 | Token | Value | Usage |
 |---|---|---|
-| `--bg` | `#080c18` | Page background |
-| `--surface` | `#0f1525` | Card / header background |
-| `--surface2` | `#161d33` | Input / secondary surfaces |
-| `--border` | `#1e2a45` | All borders |
-| `--accent` | `#e8c14a` | Gold - primary highlight, selected team |
-| `--accent2` | `#5b9cf6` | Blue - groups, secondary info |
-| `--text` | `#e8eaf0` | Body text |
-| `--muted` | `#6b7898` | Labels, metadata, placeholders |
+| `--bg` | `#0c0e0a` | Page background |
+| `--surface` | `#141a0f` | Card / header background |
+| `--surface2` | `#1c2414` | Input / secondary surfaces |
+| `--border` | `#1e2a14` | All borders |
+| `--accent` | `#c8f000` | Electric lime - primary highlight, selected team |
+| `--accent-muted` | `rgba(200,240,0,0.12)` | Lime tint for badge backgrounds |
+| `--accent-border` | `rgba(200,240,0,0.35)` | Lime tint for badge borders |
+| `--accent2` | `#5b9cf6` | Blue - possible matches, secondary info |
+| `--text` | `#f0f2eb` | Body text |
+| `--muted` | `#8a9478` | Labels, metadata, placeholders |
 | `--live-color` | `#e8443a` | Live match indicator |
-| `--highlight` | `rgba(232,193,74,0.1)` | Selected team card background |
+| `--highlight` | `rgba(200,240,0,0.10)` | Selected team card background |
+| `--highlight-border` | `#c8f000` | Selected team card border |
 | `--possible-bg` | `rgba(91,156,246,0.08)` | Possible knockout match background |
+| `--possible-border` | `#5b9cf6` | Possible knockout match border |
 
+Logo: `WC` in `--text`, `26` in `--accent` (lime).
 Fonts: `'Barlow Condensed'` for headings/scores/labels, `'Barlow'` for body text.
+Score numerals use `font-variant-numeric: tabular-nums` to prevent layout shift.
 
 ## Data model
 
