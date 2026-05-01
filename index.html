@@ -169,6 +169,20 @@
       .team-name{font-size:13px;}
       .groups-grid{grid-template-columns:repeat(2,1fr);}
     }
+
+    /* PWA INSTALL BANNER */
+    .install-banner{border-bottom:1px solid rgba(200,240,0,0.2);padding:7px 16px;background:rgba(200,240,0,0.06);}
+    .install-banner-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);}
+    .install-banner-text{flex:1;color:var(--muted);}
+    .install-banner-btn{background:var(--accent-muted);border:1px solid var(--accent-border);color:var(--accent);font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;padding:5px 11px;border-radius:5px;cursor:pointer;white-space:nowrap;transition:all 0.15s;}
+    .install-banner-btn:hover{background:rgba(200,240,0,0.22);}
+    .install-banner-dismiss{background:none;border:none;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;padding:0 2px;flex-shrink:0;}
+
+    /* PWA INSTALL FOOTER */
+    .install-footer{padding:28px 0 20px;text-align:center;border-top:1px solid var(--border);margin-top:8px;}
+    .install-footer-btn{background:var(--accent-muted);border:1px solid var(--accent-border);color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700;letter-spacing:0.5px;padding:12px 28px;border-radius:8px;cursor:pointer;transition:all 0.15s;display:inline-flex;align-items:center;gap:8px;}
+    .install-footer-btn:hover{background:rgba(200,240,0,0.22);}
+    .install-footer-label{font-size:11px;color:var(--muted);margin-top:7px;}
   </style>
 </head>
 <body>
@@ -188,6 +202,15 @@
     <span class="live-dot"></span>
     <span id="liveBarText">Scores live</span>
     <span style="margin-left:auto;color:var(--muted);font-size:10px" id="lastUpdated"></span>
+  </div>
+</div>
+
+<div id="installBanner" class="install-banner" style="display:none">
+  <div class="install-banner-inner">
+    <span style="font-size:16px">📲</span>
+    <span class="install-banner-text">Add WC26 to your home screen for quick access</span>
+    <button class="install-banner-btn" onclick="triggerInstall()">Install</button>
+    <button class="install-banner-dismiss" onclick="dismissInstallBanner()" aria-label="Dismiss">✕</button>
   </div>
 </div>
 
@@ -223,6 +246,11 @@
       <strong>First 48-team World Cup.</strong> 32 teams advance from the group stage - top 2 from each of the 12 groups, plus the 8 best third-placed teams. Select a team above to see their potential knockout path.
     </div>
     <div id="knockoutContainer"></div>
+  </div>
+
+  <div id="installFooter" class="install-footer" style="display:none">
+    <button class="install-footer-btn" onclick="triggerInstall()">📲 Add to home screen</button>
+    <div class="install-footer-label">Free, no sign-in - works offline</div>
   </div>
 </main>
 
@@ -947,6 +975,71 @@ function switchTab(name) {
 }
 
 // =============================================
+// PWA INSTALL
+// =============================================
+let deferredInstallPrompt = null;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  if (!isStandalone) showInstallUI();
+});
+
+window.addEventListener('appinstalled', () => { hideInstallUI(); });
+
+function showInstallUI() {
+  document.getElementById('installFooter').style.display = 'block';
+  if (!localStorage.getItem('wc26-install-dismissed')) {
+    document.getElementById('installBanner').style.display = 'block';
+  }
+}
+
+function dismissInstallBanner() {
+  document.getElementById('installBanner').style.display = 'none';
+  localStorage.setItem('wc26-install-dismissed', '1');
+}
+
+function hideInstallUI() {
+  document.getElementById('installBanner').style.display = 'none';
+  document.getElementById('installFooter').style.display = 'none';
+}
+
+async function triggerInstall() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (outcome === 'accepted') hideInstallUI();
+  } else if (isIOS) {
+    showModal('Add to Home Screen', 'Install WC26 as an app on your iPhone or iPad',
+      `<div class="cal-option" style="cursor:default">
+        <span class="cal-option-icon">1️⃣</span>
+        <div class="cal-option-text">
+          <div class="cal-option-name">Tap the Share button</div>
+          <div class="cal-option-desc">The <strong style="color:var(--accent2)">□↑</strong> icon at the bottom of Safari</div>
+        </div>
+      </div>
+      <div class="cal-option" style="cursor:default">
+        <span class="cal-option-icon">2️⃣</span>
+        <div class="cal-option-text">
+          <div class="cal-option-name">Tap 'Add to Home Screen'</div>
+          <div class="cal-option-desc">Scroll down in the share sheet to find it</div>
+        </div>
+      </div>
+      <div class="cal-option" style="cursor:default">
+        <span class="cal-option-icon">3️⃣</span>
+        <div class="cal-option-text">
+          <div class="cal-option-name">Tap 'Add' to confirm</div>
+          <div class="cal-option-desc">WC26 will appear on your home screen</div>
+        </div>
+      </div>`,
+      'Works offline and updates automatically - no App Store download needed.');
+  }
+}
+
+// =============================================
 // INIT
 // =============================================
 (function init() {
@@ -968,6 +1061,13 @@ function switchTab(name) {
   startPolling();
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+
+  if (isIOS && !isStandalone) {
+    document.getElementById('installFooter').style.display = 'block';
+    if (!localStorage.getItem('wc26-install-dismissed')) {
+      document.getElementById('installBanner').style.display = 'block';
+    }
+  }
 })();
 </script>
 </body>
