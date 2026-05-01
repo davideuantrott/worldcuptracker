@@ -193,6 +193,7 @@ export default async function handler(req, res) {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
+      allowOverwrite: true,
       cacheControlMaxAge: 0,
     });
 
