@@ -1,0 +1,626 @@
+{
+  "meta": {
+    "name": "WC26 Design System",
+    "version": "1.0.0",
+    "description": "Dark sports-dashboard aesthetic for the WC26 PWA. Replaces the existing navy/gold palette with a near-black/olive/electric-lime system derived from reference screenshots.",
+    "lastUpdated": "2026-05-01"
+  },
+  "colors": {
+    "bg": {
+      "page": "#0c0e0a",
+      "card": "#141a0f",
+      "cardAlt": "#1c2414",
+      "elevated": "#232d18",
+      "overlay": "rgba(8, 10, 6, 0.82)"
+    },
+    "border": {
+      "default": "#1e2a14",
+      "strong": "#2e3f1c",
+      "accent": "#c8f000"
+    },
+    "accent": {
+      "primary": "#c8f000",
+      "dim": "#8aaa00",
+      "muted": "rgba(200, 240, 0, 0.12)",
+      "border": "rgba(200, 240, 0, 0.35)"
+    },
+    "text": {
+      "primary": "#f0f2eb",
+      "secondary": "#8a9478",
+      "muted": "#545c42",
+      "inverse": "#0c0e0a",
+      "accent": "#c8f000"
+    },
+    "semantic": {
+      "positive": "#c8f000",
+      "negative": "#e8443a",
+      "warning": "#f5a623",
+      "info": "#5b9cf6",
+      "teal": "#00c9b1",
+      "crimson": {
+        "bg": "#2a0a0a",
+        "surface": "#3d1010",
+        "border": "#7a2020"
+      }
+    },
+    "chart": [
+      "#c8f000",
+      "#f5a623",
+      "#e8443a",
+      "#00c9b1",
+      "#7b61ff",
+      "#5b9cf6"
+    ],
+    "iconBg": {
+      "lime": "#2a3a00",
+      "amber": "#3a2800",
+      "red": "#3a1000",
+      "teal": "#003a35",
+      "neutral": "#1e2a14"
+    }
+  },
+  "typography": {
+    "fonts": {
+      "display": "'Barlow Condensed', 'Oswald', sans-serif",
+      "body": "'Barlow', 'Inter', sans-serif",
+      "numeric": "'Barlow Condensed', 'Tabular Nums', sans-serif"
+    },
+    "fontFeatures": {
+      "numerals": "tabular-nums lining-nums"
+    },
+    "scale": {
+      "displayXl": {
+        "size": "28px",
+        "weight": 800,
+        "lineHeight": 1.1,
+        "tracking": "-0.02em",
+        "font": "display"
+      },
+      "displayLg": {
+        "size": "22px",
+        "weight": 800,
+        "lineHeight": 1.1,
+        "tracking": "-0.01em",
+        "font": "display"
+      },
+      "statValue": {
+        "size": "20px",
+        "weight": 700,
+        "lineHeight": 1.2,
+        "font": "numeric"
+      },
+      "heading": {
+        "size": "16px",
+        "weight": 700,
+        "lineHeight": 1.3,
+        "font": "display"
+      },
+      "label": {
+        "size": "14px",
+        "weight": 600,
+        "lineHeight": 1.4,
+        "font": "body"
+      },
+      "body": {
+        "size": "13px",
+        "weight": 400,
+        "lineHeight": 1.5,
+        "font": "body"
+      },
+      "caption": {
+        "size": "11px",
+        "weight": 400,
+        "lineHeight": 1.4,
+        "font": "body"
+      },
+      "badge": {
+        "size": "10px",
+        "weight": 700,
+        "lineHeight": 1,
+        "tracking": "0.02em",
+        "font": "body"
+      }
+    }
+  },
+  "spacing": {
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "5": "20px",
+    "6": "24px",
+    "8": "32px",
+    "10": "40px",
+    "12": "48px",
+    "pagePadding": "16px",
+    "cardPadding": "14px",
+    "cardPaddingLg": "18px",
+    "sectionGap": "10px",
+    "stackGap": "6px",
+    "headerHeight": "56px",
+    "tabBarHeight": "48px"
+  },
+  "radius": {
+    "sm": "6px",
+    "md": "10px",
+    "lg": "14px",
+    "xl": "18px",
+    "full": "9999px",
+    "icon": "50%"
+  },
+  "shadows": {
+    "float": "0 8px 32px rgba(0, 0, 0, 0.6)",
+    "inner": "inset 0 1px 0 rgba(200, 240, 0, 0.04)",
+    "glow": "0 0 12px rgba(200, 240, 0, 0.25)"
+  },
+  "components": {
+    "statCard": {
+      "background": "colors.bg.card",
+      "border": "1px solid colors.border.default",
+      "borderRadius": "radius.lg",
+      "padding": "spacing.cardPadding",
+      "layout": "flex row, icon left, text right",
+      "icon": {
+        "size": "36px",
+        "shape": "circle (radius.icon)",
+        "background": "colors.iconBg.lime (or semantic variant)",
+        "iconColor": "colors.accent.primary"
+      },
+      "label": {
+        "typography": "caption",
+        "color": "colors.text.secondary"
+      },
+      "value": {
+        "typography": "statValue",
+        "color": "colors.text.primary"
+      },
+      "badge": {
+        "typography": "badge",
+        "background": "colors.accent.muted",
+        "color": "colors.accent.primary",
+        "borderRadius": "radius.full",
+        "padding": "2px 6px",
+        "negativeBg": "rgba(232, 68, 58, 0.15)",
+        "negativeColor": "colors.semantic.negative"
+      },
+      "expandIcon": {
+        "color": "colors.text.muted",
+        "size": "12px"
+      }
+    },
+    "matchCard": {
+      "background": "colors.bg.card",
+      "border": "1px solid colors.border.default",
+      "borderRadius": "radius.lg",
+      "padding": "12px spacing.cardPadding",
+      "layout": "flex row: [meta] [teams/score] [footer]",
+      "states": {
+        "teamMatch": {
+          "background": "colors.accent.muted",
+          "border": "1px solid colors.border.accent"
+        },
+        "possible": {
+          "background": "rgba(91, 156, 246, 0.08)",
+          "border": "1px solid rgba(91, 156, 246, 0.3)"
+        },
+        "live": {
+          "border": "1px solid colors.semantic.negative",
+          "leftAccentBar": "3px solid colors.semantic.negative"
+        }
+      },
+      "teamName": {
+        "typography": "heading",
+        "color": "colors.text.primary"
+      },
+      "teamNameHighlighted": {
+        "color": "colors.accent.primary"
+      },
+      "score": {
+        "typography": {
+          "size": "22px",
+          "weight": 800,
+          "font": "numeric"
+        },
+        "color": "colors.text.primary"
+      },
+      "tvBadge": {
+        "borderRadius": "radius.sm",
+        "padding": "2px 7px",
+        "typography": "badge",
+        "variants": {
+          "BBC": {
+            "background": "rgba(187,25,25,0.2)",
+            "color": "#ff8080",
+            "border": "1px solid rgba(187,25,25,0.4)"
+          },
+          "ITV": {
+            "background": "rgba(0,112,201,0.2)",
+            "color": "#80bfff",
+            "border": "1px solid rgba(0,112,201,0.4)"
+          },
+          "BOTH": {
+            "background": "rgba(140,80,200,0.2)",
+            "color": "#c9a0ff",
+            "border": "1px solid rgba(140,80,200,0.4)"
+          },
+          "TBA": {
+            "background": "rgba(100,100,80,0.15)",
+            "color": "colors.text.secondary",
+            "border": "1px solid colors.border.default"
+          }
+        }
+      },
+      "calendarButton": {
+        "background": "none",
+        "border": "1px solid colors.border.default",
+        "color": "colors.text.secondary",
+        "borderRadius": "radius.sm",
+        "padding": "3px 8px",
+        "typography": "caption",
+        "hoverBorder": "colors.accent.primary",
+        "hoverColor": "colors.accent.primary"
+      }
+    },
+    "matchBadge": {
+      "borderRadius": "radius.sm",
+      "padding": "2px 7px",
+      "typography": "badge",
+      "variants": {
+        "FT": {
+          "background": "rgba(80,200,120,0.12)",
+          "color": "#6ddfaa"
+        },
+        "LIVE": {
+          "background": "rgba(232,68,58,0.2)",
+          "color": "colors.semantic.negative",
+          "animation": "pulse 1.2s infinite"
+        },
+        "HT": {
+          "background": "rgba(232,68,58,0.12)",
+          "color": "colors.semantic.negative"
+        },
+        "groupTag": {
+          "background": "rgba(200,240,0,0.10)",
+          "color": "colors.accent.primary"
+        },
+        "yourTeam": {
+          "background": "rgba(200,240,0,0.10)",
+          "color": "colors.accent.primary"
+        },
+        "possible": {
+          "background": "rgba(91,156,246,0.12)",
+          "color": "colors.semantic.info"
+        }
+      }
+    },
+    "tabNav": {
+      "background": "colors.bg.card",
+      "borderBottom": "1px solid colors.border.default",
+      "tabItem": {
+        "typography": "label",
+        "color": "colors.text.secondary",
+        "textTransform": "uppercase",
+        "letterSpacing": "0.05em"
+      },
+      "tabItemActive": {
+        "color": "colors.accent.primary",
+        "borderBottom": "2px solid colors.accent.primary"
+      }
+    },
+    "header": {
+      "background": "colors.bg.card",
+      "borderBottom": "1px solid colors.border.default",
+      "height": "spacing.headerHeight",
+      "logo": {
+        "font": "display",
+        "weight": 800,
+        "size": "21px",
+        "color": "colors.accent.primary",
+        "accentPart": "colors.accent.primary",
+        "normalPart": "colors.text.primary"
+      }
+    },
+    "button": {
+      "primary": {
+        "background": "colors.accent.primary",
+        "color": "colors.text.inverse",
+        "borderRadius": "radius.full",
+        "padding": "12px 24px",
+        "typography": "label",
+        "fontWeight": 700
+      },
+      "secondary": {
+        "background": "colors.bg.elevated",
+        "color": "colors.text.primary",
+        "border": "1px solid colors.border.strong",
+        "borderRadius": "radius.full",
+        "padding": "12px 24px",
+        "typography": "label"
+      },
+      "icon": {
+        "background": "colors.bg.elevated",
+        "border": "1px solid colors.border.default",
+        "borderRadius": "radius.icon",
+        "size": "36px",
+        "color": "colors.text.secondary"
+      },
+      "clear": {
+        "background": "none",
+        "border": "1px solid colors.border.default",
+        "color": "colors.text.secondary",
+        "borderRadius": "radius.sm",
+        "hoverBorder": "colors.accent.primary",
+        "hoverColor": "colors.accent.primary"
+      }
+    },
+    "groupCard": {
+      "background": "colors.bg.card",
+      "border": "1px solid colors.border.default",
+      "borderRadius": "radius.lg",
+      "padding": "spacing.cardPadding",
+      "label": {
+        "typography": "badge",
+        "color": "colors.text.secondary",
+        "letterSpacing": "0.1em",
+        "textTransform": "uppercase"
+      },
+      "teamRow": {
+        "typography": "body",
+        "color": "colors.text.primary",
+        "borderBottom": "1px solid rgba(255,255,255,0.04)"
+      },
+      "teamRowHighlighted": {
+        "color": "colors.accent.primary",
+        "fontWeight": 600
+      },
+      "activeState": {
+        "border": "1px solid colors.accent.primary",
+        "background": "colors.accent.muted"
+      }
+    },
+    "liveBar": {
+      "background": "rgba(232, 68, 58, 0.08)",
+      "borderBottom": "1px solid rgba(232, 68, 58, 0.25)",
+      "color": "colors.semantic.negative",
+      "dot": {
+        "size": "7px",
+        "background": "colors.semantic.negative",
+        "animation": "pulse 1.2s ease-in-out infinite"
+      }
+    },
+    "filterBanner": {
+      "background": "colors.accent.muted",
+      "border": "1px solid colors.border.accent",
+      "borderRadius": "radius.lg",
+      "padding": "10px spacing.cardPadding",
+      "color": "colors.accent.primary",
+      "typography": "body"
+    },
+    "modal": {
+      "background": "colors.bg.card",
+      "border": "1px solid colors.border.default",
+      "borderRadius": "radius.xl radius.xl 0 0",
+      "borderRadiusDesktop": "radius.xl",
+      "overlay": "colors.bg.overlay",
+      "optionRow": {
+        "background": "colors.bg.cardAlt",
+        "border": "1px solid colors.border.default",
+        "borderRadius": "radius.lg",
+        "padding": "spacing.cardPadding",
+        "hoverBackground": "rgba(200,240,0,0.04)",
+        "hoverBorder": "rgba(91,156,246,0.4)"
+      }
+    },
+    "progressBar": {
+      "track": {
+        "background": "colors.bg.elevated",
+        "height": "3px",
+        "borderRadius": "radius.full"
+      },
+      "fill": {
+        "background": "colors.accent.primary",
+        "borderRadius": "radius.full"
+      }
+    },
+    "sectionTitle": {
+      "typography": "badge",
+      "color": "colors.text.secondary",
+      "letterSpacing": "0.15em",
+      "textTransform": "uppercase",
+      "borderBottom": "1px solid colors.border.default",
+      "paddingBottom": "spacing.2",
+      "marginBottom": "spacing.2"
+    },
+    "select": {
+      "background": "colors.bg.cardAlt",
+      "border": "1px solid colors.border.default",
+      "color": "colors.text.primary",
+      "borderRadius": "radius.md",
+      "focusBorder": "colors.accent.primary",
+      "typography": "body",
+      "chevronColor": "colors.text.secondary"
+    }
+  },
+  "charts": {
+    "general": {
+      "background": "transparent",
+      "gridLines": "none",
+      "axisLabel": {
+        "typography": "caption",
+        "color": "colors.text.secondary"
+      }
+    },
+    "lineChart": {
+      "strokeWidth": 2,
+      "dotSize": 6,
+      "dotBorder": "2px solid colors.bg.card",
+      "areaOpacity": 0.08
+    },
+    "radialChart": {
+      "ringGap": 4,
+      "ringWidth": 18,
+      "background": "rgba(255,255,255,0.04)"
+    },
+    "barChart": {
+      "barRadius": "4px",
+      "barColor": "colors.accent.primary",
+      "barColorDim": "rgba(200,240,0,0.35)",
+      "gap": 6
+    },
+    "gaugeChart": {
+      "trackBackground": "colors.bg.elevated",
+      "segments": [
+        "#c8f000",
+        "#f5a623",
+        "#e8443a",
+        "#7b61ff",
+        "#5b9cf6"
+      ]
+    },
+    "liveScoreBadge": {
+      "font": "numeric",
+      "size": "22px",
+      "weight": 800,
+      "color": "colors.text.primary"
+    }
+  },
+  "animation": {
+    "durationFast": "120ms",
+    "durationBase": "200ms",
+    "durationSlow": "300ms",
+    "easing": "cubic-bezier(0.2, 0, 0, 1)",
+    "easingBounce": "cubic-bezier(0.34, 1.56, 0.64, 1)",
+    "transitions": {
+      "default": "all 200ms cubic-bezier(0.2, 0, 0, 1)",
+      "color": "color 150ms ease, border-color 150ms ease, background 150ms ease"
+    },
+    "keyframes": {
+      "pulse": {
+        "0%, 100%": {
+          "opacity": 1
+        },
+        "50%": {
+          "opacity": 0.25
+        }
+      },
+      "slideUp": {
+        "from": {
+          "transform": "translateY(40px)",
+          "opacity": 0
+        },
+        "to": {
+          "transform": "translateY(0)",
+          "opacity": 1
+        }
+      },
+      "fadeIn": {
+        "from": {
+          "opacity": 0
+        },
+        "to": {
+          "opacity": 1
+        }
+      }
+    }
+  },
+  "breakpoints": {
+    "sm": "480px",
+    "md": "600px",
+    "lg": "900px",
+    "xl": "1200px"
+  },
+  "layout": {
+    "contentMaxWidth": "900px",
+    "pagePaddingMobile": "16px",
+    "pagePaddingDesktop": "24px",
+    "cardGrid": {
+      "columns": "repeat(auto-fill, minmax(195px, 1fr))",
+      "gap": "10px"
+    }
+  },
+  "cssVariables": {
+    "--bg": "#0c0e0a",
+    "--surface": "#141a0f",
+    "--surface2": "#1c2414",
+    "--border": "#1e2a14",
+    "--accent": "#c8f000",
+    "--accent-muted": "rgba(200, 240, 0, 0.12)",
+    "--accent-border": "rgba(200, 240, 0, 0.35)",
+    "--accent2": "#5b9cf6",
+    "--text": "#f0f2eb",
+    "--muted": "#8a9478",
+    "--live-color": "#e8443a",
+    "--positive": "#c8f000",
+    "--negative": "#e8443a",
+    "--warning": "#f5a623",
+    "--highlight": "rgba(200, 240, 0, 0.10)",
+    "--highlight-border": "#c8f000",
+    "--possible-bg": "rgba(91, 156, 246, 0.08)",
+    "--possible-border": "#5b9cf6"
+  },
+  "migrationNotes": {
+    "replaceTokens": [
+      {
+        "old": "--bg: #080c18",
+        "new": "--bg: #0c0e0a"
+      },
+      {
+        "old": "--surface: #0f1525",
+        "new": "--surface: #141a0f"
+      },
+      {
+        "old": "--surface2: #161d33",
+        "new": "--surface2: #1c2414"
+      },
+      {
+        "old": "--border: #1e2a45",
+        "new": "--border: #1e2a14"
+      },
+      {
+        "old": "--accent: #e8c14a",
+        "new": "--accent: #c8f000"
+      },
+      {
+        "old": "--accent2: #5b9cf6",
+        "new": "--accent2: #5b9cf6"
+      },
+      {
+        "old": "--text: #e8eaf0",
+        "new": "--text: #f0f2eb"
+      },
+      {
+        "old": "--muted: #6b7898",
+        "new": "--muted: #8a9478"
+      },
+      {
+        "old": "--highlight: rgba(232,193,74,0.1)",
+        "new": "--highlight: rgba(200,240,0,0.10)"
+      },
+      {
+        "old": "--highlight-border: #e8c14a",
+        "new": "--highlight-border: #c8f000"
+      }
+    ],
+    "typographyChanges": [
+      "No font family changes required - Barlow Condensed + Barlow already loaded.",
+      "Add font-variant-numeric: tabular-nums to .score-nums and all stat value elements.",
+      "Logo: 'WC' in --accent, '26' in --text (currently reversed - swap)."
+    ],
+    "doNotChange": [
+      "All match data arrays (MATCHES, KNOCKOUT_ROUNDS, GROUPS, FLAGS)",
+      "All calendar logic (buildIcs, downloadIcs, googleCalUrl, outlookWebUrl)",
+      "Score polling logic (fetchScores, startPolling)",
+      "Service worker (sw.js)",
+      "PWA manifest (manifest.json)",
+      "Tab switching logic",
+      "Time/timezone conversion functions",
+      "All TV badge logic and data"
+    ],
+    "newElementsToAdd": [
+      "Consider adding a thin lime (#c8f000) left-border accent bar to the active/selected match card state (as seen on reference 'live' card treatment).",
+      "Icon containers on stat cards (circular, 36px, --surface2 bg with --accent icon) - currently flat, could add these to the filter banner stat section.",
+      "Progress bar under team name in filter banner - thin 3px lime bar showing e.g. group progress.",
+      "Subtle radial dot-grid background texture on the splash/onboarding screen (as seen in baseball card in reference) - optional, low priority."
+    ]
+  }
+}

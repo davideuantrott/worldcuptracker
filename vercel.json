@@ -1,0 +1,23 @@
+{
+  "crons": [
+    {
+      "path": "/api/update-scores",
+      "schedule": "*/2 * * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/scores.json",
+      "destination": "https://YOUR_BLOB_STORE_URL/scores.json"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/scores.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    }
+  ]
+}
