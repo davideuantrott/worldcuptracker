@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/scores.json",
-      "destination": "https://kdoazmegsbme4ynq.public.blob.vercel-storage.com"
+      "destination": "https://kdoazmegsbme4ynq.public.blob.vercel-storage.com/scores.json"
     }
   ],
   "headers": [

@@ -6,6 +6,13 @@ Ad-free, no-login Progressive Web App for tracking FIFA World Cup 2026 fixtures,
 live scores, UK TV listings, team/group filtering, and calendar export.
 Built as a single-file static frontend with a Vercel serverless backend for scores.
 
+## Deployment
+
+- **Live URL:** https://worldcuptracker.vercel.app
+- **Blob storage:** https://kdoazmegsbme4ynq.public.blob.vercel-storage.com/scores.json
+- **Score updater cron:** cron-job.org (calls `/api/update-scores` every 5 minutes)
+  - Vercel Hobby plan does not support frequent crons - cron-job.org is used instead
+
 ## Stack
 
 - **Frontend:** Vanilla HTML/CSS/JS - no framework, no build step required
@@ -21,13 +28,15 @@ Built as a single-file static frontend with a Vercel serverless backend for scor
 ```
 index.html                  Primary PWA - all UI, state, and calendar logic
 manifest.json               PWA manifest
-sw.js                       Service worker
-scores.json                 Live match scores (written by cron, read by PWA)
-vercel.json                 Cron schedule + routing config
-backend/
-  update-scores.js          Serverless cron function - fetches API, writes Blob
+sw.js                       Service worker (network-first for scores, cache-first for assets)
+scores.json                 Placeholder - live scores served from Blob via /scores.json rewrite
+vercel.json                 Routing + header config (no crons - handled by cron-job.org)
+package.json                Node deps (type: module, @vercel/blob)
+node_modules/               Dependencies
+api/
+  update-scores.js          Serverless function - fetches API, writes Blob (GET to trigger)
 CLAUDE.md                   This file
-HANDOFF.md                  Detailed task list for Claude Code
+HANDOFF.md                  Detailed task list and gotchas
 README.md                   Deployment instructions
 ```
 
@@ -93,19 +102,19 @@ Status values: `FT` | `HT` | `LIVE` | `ET` | `PEN`
 
 Only matches with known scores appear. Missing IDs = not yet played.
 
-## Key constants in index.html (update before deploying)
+## Key constants in index.html
 
 ```js
-const SCORES_URL = '/scores.json';           // URL the PWA polls for scores
-const BASE_URL = 'https://your-domain.com';  // Used for webcal:// feed URLs
-const POLL_INTERVAL = 60000;                 // Normal poll frequency (ms)
+const SCORES_URL = '/scores.json';                        // Rewrites to Blob via vercel.json
+const BASE_URL = 'https://worldcuptracker.vercel.app';    // Live domain
+const POLL_INTERVAL = 60000;                              // Normal poll frequency (ms)
 ```
 
 ## Environment variables (Vercel)
 
 | Variable | Description |
 |---|---|
-| `FOOTBALL_DATA_API_KEY` | football-data.org API key |
+| `FOOTBALL_DATA_API_KEY` | football-data.org API key - set in Vercel dashboard |
 | `BLOB_READ_WRITE_TOKEN` | Auto-set by Vercel Blob |
 
 ## Scores polling behaviour
@@ -127,7 +136,7 @@ Three modes triggered from the UI:
 3. **Group bulk** - all group stage matches as .ics download
 4. **Subscribe feed** - webcal:// URL for Apple, Google Calendar subscribe URL,
    Outlook instructions. Feed URL format: `BASE_URL/feeds/{slug}.ics`
-   (feed serving endpoint not yet implemented - see HANDOFF.md)
+   (feed serving endpoint not yet implemented - see HANDOFF.md task 2)
 
 ## Tone and conventions
 

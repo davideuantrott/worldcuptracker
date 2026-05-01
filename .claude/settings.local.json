@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\david\\\\OneDrive\\\\Documents\\\\GitHub\\\\worldcuptracker\\\\api\" -Force)"
+      "PowerShell(New-Item -ItemType Directory -Path \"c:\\\\Users\\\\david\\\\OneDrive\\\\Documents\\\\GitHub\\\\worldcuptracker\\\\api\" -Force)",
+      "Bash(git add *)"
     ]
   }
 }
