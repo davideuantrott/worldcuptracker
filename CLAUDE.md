@@ -169,6 +169,11 @@ Three modes triggered from the UI:
    Outlook instructions. Feed URL format: `BASE_URL/feeds/{slug}.ics`
    (feed serving endpoint not yet implemented - see HANDOFF.md task 2)
 
+### ICS generation gotchas
+
+- **`fmtIcsDate` / `fmtIcsDateEnd` already include the trailing `Z`** (from `toISOString()`). Do NOT append `Z` again in `DTSTART`/`DTEND` lines — a double `ZZ` causes calendar apps to misparse the timestamp as local time, shifting the event 1 hour early for BST users.
+- **Event titles** use the format `Home vs. Away - Channel` (e.g. `Haiti vs. Scotland - BBC`). Channel suffix is omitted when `uk` is `TBA` or absent. All three calendar paths (ICS download, Google Calendar URL, Outlook URL) use the same format.
+
 ## Tone and conventions
 
 - No framework dependencies - keep it vanilla JS

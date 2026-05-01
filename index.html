@@ -493,16 +493,18 @@ function icsEscape(s) {
 function matchToIcsEvent(m) {
   const res = liveResults[m.id];
   const scoreStr = res ? ` (${res.home}-${res.away})` : '';
-  const tvStr = m.uk && m.uk !== 'TBA' ? ` · UK: ${m.uk === 'BOTH' ? 'BBC & ITV' : m.uk + (m.uk==='BBC'?' (iPlayer)':' (ITVX)')}` : '';
+  const channelName = {BBC: 'BBC', ITV: 'ITV', BOTH: 'BBC & ITV'}[m.uk] || '';
+  const tvSuffix = channelName ? ` - ${channelName}` : '';
+  const tvStr = channelName ? ` · UK: ${m.uk === 'BOTH' ? 'BBC & ITV' : m.uk + (m.uk==='BBC'?' (iPlayer)':' (ITVX)')}` : '';
   const confirmedNote = m.confirmed === false ? ' [PENCILLED IN - subject to qualification]' : '';
-  const title = m.home && m.away ? `⚽ ${m.home} vs ${m.away}${scoreStr}` : `⚽ WC26: ${m.home} vs ${m.away}`;
+  const title = `${m.home} vs. ${m.away}${scoreStr}${tvSuffix}`;
   const desc = `FIFA World Cup 2026 - Group ${m.group||'Knockout'}\\n${m.venue}${tvStr}${confirmedNote}`;
   const uid = `wc2026-${m.id}@wc26`;
   return [
     'BEGIN:VEVENT',
     `UID:${uid}`,
-    `DTSTART:${fmtIcsDate(m.date, m.utc)}Z`,
-    `DTEND:${fmtIcsDateEnd(m.date, m.utc)}Z`,
+    `DTSTART:${fmtIcsDate(m.date, m.utc)}`,
+    `DTEND:${fmtIcsDateEnd(m.date, m.utc)}`,
     `SUMMARY:${icsEscape(title)}`,
     `DESCRIPTION:${icsEscape(desc)}`,
     `LOCATION:${icsEscape(m.venue||'')}`,
@@ -538,9 +540,11 @@ function downloadIcs(matches, filename, calName) {
 function googleCalUrl(m) {
   const start = parseKickoff(m.date, m.utc).toISOString().replace(/[-:]/g,'').replace('.000Z','Z');
   const end = new Date(parseKickoff(m.date, m.utc).getTime() + 110*60000).toISOString().replace(/[-:]/g,'').replace('.000Z','Z');
-  const title = encodeURIComponent(`⚽ ${m.home} vs ${m.away} - WC 2026`);
+  const channelName = {BBC: 'BBC', ITV: 'ITV', BOTH: 'BBC & ITV'}[m.uk] || '';
+  const tvSuffix = channelName ? ` - ${channelName}` : '';
+  const title = encodeURIComponent(`${m.home} vs. ${m.away}${tvSuffix}`);
   const loc = encodeURIComponent(m.venue||'');
-  const details = encodeURIComponent(`FIFA World Cup 2026\nGroup: ${m.group||'Knockout'}\nVenue: ${m.venue}\nUK TV: ${m.uk && m.uk!=='TBA' ? (m.uk==='BOTH'?'BBC & ITV':m.uk) : 'TBA'}`);
+  const details = encodeURIComponent(`FIFA World Cup 2026\nGroup: ${m.group||'Knockout'}\nVenue: ${m.venue}\nUK TV: ${channelName || 'TBA'}`);
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&location=${loc}&details=${details}`;
 }
 
@@ -548,9 +552,11 @@ function googleCalUrl(m) {
 function outlookWebUrl(m) {
   const start = parseKickoff(m.date, m.utc).toISOString();
   const end = new Date(parseKickoff(m.date, m.utc).getTime() + 110*60000).toISOString();
-  const title = encodeURIComponent(`⚽ ${m.home} vs ${m.away} - WC 2026`);
+  const channelName = {BBC: 'BBC', ITV: 'ITV', BOTH: 'BBC & ITV'}[m.uk] || '';
+  const tvSuffix = channelName ? ` - ${channelName}` : '';
+  const title = encodeURIComponent(`${m.home} vs. ${m.away}${tvSuffix}`);
   const loc = encodeURIComponent(m.venue||'');
-  const body = encodeURIComponent(`FIFA World Cup 2026 - UK TV: ${m.uk && m.uk!=='TBA' ? (m.uk==='BOTH'?'BBC & ITV':m.uk) : 'TBA'}`);
+  const body = encodeURIComponent(`FIFA World Cup 2026 - UK TV: ${channelName || 'TBA'}`);
   return `https://outlook.live.com/calendar/0/deeplink/compose?subject=${title}&startdt=${start}&enddt=${end}&location=${loc}&body=${body}`;
 }
 
