@@ -145,6 +145,17 @@ Match times are stored as UTC in the `MATCHES` array and converted for display v
 - Silent failure if fetch fails - no UI error shown
 - Live bar shown at top when results are available or matches are live
 
+## PWA install prompt
+
+Two UI elements prompt users to install the PWA, both hidden when already running in standalone mode (`display-mode: standalone` or `navigator.standalone`):
+
+- **Banner** — slim bar between the live bar and tabs, shown on first visit. Dismissed by tapping ✕; dismissal persisted in `localStorage` key `wc26-install-dismissed`. Does not reappear after dismissal, but the footer button remains.
+- **Footer button** — "Add to home screen" button at the bottom of the scroll, always visible when installable.
+
+**Android / Chrome**: the browser fires `beforeinstallprompt`, which is captured and deferred. Tapping either UI element calls `deferredInstallPrompt.prompt()` to trigger the native install sheet. Both elements hide on `appinstalled`.
+
+**iOS Safari**: no `beforeinstallprompt` event. iOS is detected via UA string (`iPad|iPhone|iPod`). Both elements are shown on page load (respecting the dismissed flag for the banner). Tapping either element opens the existing calendar modal with 3-step share-sheet instructions.
+
 ## Calendar features
 
 Three modes triggered from the UI:
