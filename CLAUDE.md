@@ -13,6 +13,10 @@ Built as a single-file static frontend with a Vercel serverless backend for scor
 - **Score updater cron:** cron-job.org (calls `/api/update-scores` every 5 minutes)
   - Vercel Hobby plan does not support frequent crons - cron-job.org is used instead
 
+## IMPORTANT: After every deployment
+
+**Always bump the cache version in `sw.js`** — increment `const CACHE = 'wc26-vN'` by 1 each time changes are pushed. This ensures installed PWA users get the updated `index.html` served immediately rather than the stale cached version. Without this, returning users may see the old version until they manually hard-refresh.
+
 ## Stack
 
 - **Frontend:** Vanilla HTML/CSS/JS - no framework, no build step required
