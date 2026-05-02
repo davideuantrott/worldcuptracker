@@ -65,7 +65,38 @@ The full token spec lives in `design-system.json`.
 
 Logo: `WC` in `--text`, `26` in `--accent` (lime).
 Fonts: `'Barlow Condensed'` for headings/scores/labels, `'Barlow'` for body text.
-Score numerals use `font-variant-numeric: tabular-nums` to prevent layout shift.
+Score numerals use `font-variant-numeric: tabular-nums lining-nums` and `font-feature-settings: "tnum" 1` to prevent layout shift.
+
+### Motion tokens (also in `:root`)
+
+| Token | Value | Usage |
+|---|---|---|
+| `--ease-spring` | `cubic-bezier(0.16,1,0.3,1)` | Transform animations (spring feel) |
+| `--ease-color` | `cubic-bezier(0.2,0,0,1)` | Color/border transitions |
+| `--t-color` | `color/border-color/bg 150ms --ease-color` | Use on non-transform interactive elements |
+| `--t-interactive` | `--t-color + transform 200ms --ease-spring` | Use on elements with `:active` scale feedback |
+
+**Do not use `transition: all`** — always use `--t-color` or `--t-interactive`. All `:active` states use `transform: scale()` (hardware-accelerated only).
+
+### Animations
+
+| Name | Usage |
+|---|---|
+| `cardReveal` | Match cards and group cards on render — driven by `--i` inline style (`style="--i:N"`) |
+| `tabReveal` | Tab panel fade-in on `.tab-content.active` |
+| `liveGlow` | Live bar glow pulse when matches are live |
+| `liveBarPulse` | `.match-card.is-live::before` left-bar opacity pulse |
+| `shimmer` | `.score-skeleton` placeholder when scores not yet fetched |
+| `pulse` | Live dot and `badge-live` opacity pulse |
+| `slideUp` | Modal entrance |
+
+Card stagger index is capped at 18 to prevent long delays on large lists.
+
+### SVG icons
+
+Reusable icon symbols are defined in a hidden `<svg>` block at the top of `<body>`:
+`#ico-phone`, `#ico-cal-g`, `#ico-cal-o`, `#ico-apple`, `#ico-check`, `#ico-refresh`, `#ico-share`.
+Reference with `<svg><use href="#ico-X"/></svg>`. **No emoji anywhere in the UI** — use these SVG symbols or Barlow Condensed numeral badges instead.
 
 ## Data model
 
