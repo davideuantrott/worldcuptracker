@@ -7,6 +7,7 @@
   <meta name="description" content="FIFA World Cup 2026 - fixtures, results, groups and knockout tracker" />
   <title>WC26 - World Cup 2026</title>
   <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="/icons/ios/180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -209,6 +210,27 @@
     .install-footer-btn:hover{background:rgba(200,240,0,0.22);}
     .install-footer-btn:active{transform:scale(0.96);}
     .install-footer-label{font-size:11px;color:var(--muted);margin-top:7px;}
+
+    /* GROUP STANDINGS TABLE */
+    .group-table{width:100%;border-collapse:collapse;margin-top:5px;table-layout:fixed;}
+    .group-table th{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;padding-bottom:3px;text-align:right;}
+    .group-table th:first-child{width:18px;}
+    .group-table th:nth-child(2){text-align:left;}
+    .group-table th:nth-child(3){width:28px;}
+    .group-table th:nth-child(4){width:28px;}
+    .group-table td{font-size:12px;padding:3px 0;vertical-align:middle;}
+    .group-table tbody tr{border-top:1px solid rgba(255,255,255,0.04);}
+    .group-table tbody tr:first-child{border-top:none;}
+    .gt-pos{text-align:center;color:var(--muted);font-size:10px;}
+    .gt-team-cell{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:4px;}
+    .gt-pts-num{text-align:right;font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;color:var(--text);}
+    .gt-gd-num{text-align:right;font-size:11px;color:var(--muted);}
+    .group-table tr.gt-my-team .gt-team-cell,.group-table tr.gt-my-team .gt-pts-num{color:var(--accent);}
+
+    /* SCORE TOGGLE */
+    .score-toggle-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'Barlow',sans-serif;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;transition:var(--t-color);margin-left:auto;flex-shrink:0;}
+    .score-toggle-btn:hover{border-color:var(--accent);color:var(--accent);}
+    .score-toggle-btn.scores-hidden{border-color:var(--accent);color:var(--accent);background:var(--accent-muted);}
   </style>
 </head>
 <body>
@@ -292,7 +314,7 @@
   </div>
 
   <div id="tab-fixtures" class="tab-content active">
-    <div class="tz-label">Times in <span id="tzLabel">BST (UTC+1)</span></div>
+    <div class="tz-label">Times in <span id="tzLabel">BST (UTC+1)</span> <button id="scoreToggle" class="score-toggle-btn" onclick="toggleScores()">Hide scores</button></div>
     <div id="fixturesContainer"></div>
   </div>
 
@@ -507,6 +529,7 @@ let selectedTeam = '', selectedGroup = '';
 let tzOffset = 1;
 let liveResults = {};
 let pollTimer = null, liveCount = 0;
+let hideScores = localStorage.getItem('wc26-hide-scores') === '1';
 let modalContext = null; // { type: 'single'|'team'|'group', match?, team?, group? }
 let originatingCalBtn = null;
 
@@ -853,10 +876,10 @@ function matchCard(m, type='normal', idx=0) {
   let cls = 'match-card';
   if (type==='confirmed') cls+=' team-match';
   else if (type==='possible') cls+=' team-possible';
-  if (res && res.status==='LIVE') cls+=' is-live';
+  if (res && res.status==='LIVE' && !hideScores) cls+=' is-live';
 
   let centerHtml;
-  if (res) {
+  if (res && !hideScores) {
     const sb = res.status==='FT' ? '<span class="match-badge badge-ft" style="display:block;margin-top:2px">FT</span>'
              : res.status==='HT' ? '<span class="match-badge badge-ht" style="display:block;margin-top:2px">HT</span>'
              : `<span class="match-badge badge-live" style="display:block;margin-top:2px">${res.minute?res.minute+"'":'LIVE'}</span>`;
@@ -868,7 +891,7 @@ function matchCard(m, type='normal', idx=0) {
     const now = Date.now();
     const ko = parseKickoff(m.date, m.utc).getTime();
     const scoresEmpty = Object.keys(liveResults).length === 0;
-    const mightBeLive = scoresEmpty && ko <= now && now <= ko + 130*60000;
+    const mightBeLive = !hideScores && scoresEmpty && ko <= now && now <= ko + 130*60000;
     centerHtml = `<div class="score-center">${mightBeLive ? '<div class="score-skeleton"></div>' : '<div class="vs-text">vs</div>'}${sb}</div>`;
   }
 
@@ -928,9 +951,32 @@ function renderGroups() {
   let html = '';
   Object.entries(GROUPS).forEach(([g,teams], gi) => {
     const active = selectedGroup===g&&!selectedTeam;
+    const standings = calcGroupStandings(g);
+    const hasResults = standings.some(s => s.p > 0);
+    const showTable = hasResults && !hideScores;
+
     html += `<div class="group-card ${active?'active-group':''}" onclick="selectGroup('${g}')" data-group="${g}" style="--i:${gi}">
       <div class="group-label">Group ${g}</div>`;
-    teams.forEach(t => html += `<div class="group-team ${selectedTeam===t?'my-team':''}"><span>${FLAGS[t]||'🌐'}</span><span>${t}</span></div>`);
+
+    if (showTable) {
+      html += `<table class="group-table"><thead><tr>
+        <th></th><th></th><th>Pts</th><th>GD</th>
+      </tr></thead><tbody>`;
+      standings.forEach((s, pos) => {
+        const isMyTeam = selectedTeam === s.team;
+        const gd = s.gd > 0 ? '+'+s.gd : String(s.gd);
+        html += `<tr${isMyTeam?' class="gt-my-team"':''}>
+          <td class="gt-pos">${pos+1}</td>
+          <td class="gt-team-cell">${FLAGS[s.team]||''} ${s.team}</td>
+          <td class="gt-pts-num">${s.pts}</td>
+          <td class="gt-gd-num">${s.gd===0?'0':gd}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+    } else {
+      teams.forEach(t => html += `<div class="group-team ${selectedTeam===t?'my-team':''}"><span>${FLAGS[t]||'🌐'}</span><span>${t}</span></div>`);
+    }
+
     html += '</div>';
   });
   document.getElementById('groupsGrid').innerHTML = html;
@@ -939,6 +985,35 @@ function renderGroups() {
 function getTeamGroup(t) {
   for (const [g,teams] of Object.entries(GROUPS)) if (teams.includes(t)) return g;
   return null;
+}
+
+function calcGroupStandings(group) {
+  const teams = GROUPS[group];
+  const stats = Object.fromEntries(teams.map(t => [t, {p:0,w:0,d:0,l:0,gf:0,ga:0}]));
+  MATCHES.filter(m => m.group === group).forEach(m => {
+    const r = liveResults[m.id];
+    if (!r) return;
+    const sh = r.home, sa = r.away;
+    stats[m.home].p++; stats[m.away].p++;
+    stats[m.home].gf += sh; stats[m.home].ga += sa;
+    stats[m.away].gf += sa; stats[m.away].ga += sh;
+    if (sh > sa) { stats[m.home].w++; stats[m.away].l++; }
+    else if (sa > sh) { stats[m.away].w++; stats[m.home].l++; }
+    else { stats[m.home].d++; stats[m.away].d++; }
+  });
+  return teams.map(t => {
+    const s = stats[t];
+    return {...s, team:t, gd:s.gf-s.ga, pts:s.w*3+s.d};
+  }).sort((a,b) => b.pts-a.pts || b.gd-a.gd || b.gf-a.gf || a.team.localeCompare(b.team));
+}
+
+function toggleScores() {
+  hideScores = !hideScores;
+  localStorage.setItem('wc26-hide-scores', hideScores ? '1' : '0');
+  const btn = document.getElementById('scoreToggle');
+  btn.classList.toggle('scores-hidden', hideScores);
+  btn.textContent = hideScores ? 'Show scores' : 'Hide scores';
+  renderAll();
 }
 function mightInvolve(m) {
   if (!selectedTeam) return false;
@@ -1021,10 +1096,14 @@ async function fetchScores() {
 function updateLiveBar() {
   const bar = document.getElementById('liveBar');
   const txt = document.getElementById('liveBarText');
-  if (liveCount > 0) {
+  const hasAnyResults = Object.keys(liveResults).length > 0;
+  if (hideScores && hasAnyResults) {
+    bar.classList.add('visible');
+    txt.textContent = 'Scores available - hidden';
+  } else if (liveCount > 0) {
     bar.classList.add('visible');
     txt.textContent = `${liveCount} match${liveCount>1?'es':''} live - scores updating`;
-  } else if (Object.keys(liveResults).length > 0) {
+  } else if (hasAnyResults) {
     bar.classList.add('visible');
     txt.textContent = 'Results live';
   } else {
@@ -1140,6 +1219,12 @@ async function triggerInstall() {
   document.getElementById('clearBtn').addEventListener('click', () => { selectedTeam=''; selectedGroup=''; sel.value=''; renderAll(); });
   document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
   document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+
+  const scoreToggleBtn = document.getElementById('scoreToggle');
+  if (hideScores) {
+    scoreToggleBtn.classList.add('scores-hidden');
+    scoreToggleBtn.textContent = 'Show scores';
+  }
 
   renderAll();
   startPolling();

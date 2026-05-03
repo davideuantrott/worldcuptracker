@@ -37,6 +37,10 @@ scores.json                 Placeholder - live scores served from Blob via /scor
 vercel.json                 Routing + header config (no crons - handled by cron-job.org)
 package.json                Node deps (type: module, @vercel/blob)
 node_modules/               Dependencies
+icons/
+  android/                  launchericon-{48,72,96,144,192,512}x{...}.png — PWA manifest icons
+  ios/                      {size}.png — apple-touch-icon uses 180.png
+  windows/                  Windows tile variants (not currently referenced in manifest)
 api/
   update-scores.js          Serverless function - fetches API, writes Blob (GET to trigger)
 CLAUDE.md                   This file
@@ -179,6 +183,30 @@ Match times are stored as UTC in the `MATCHES` array and converted for display v
 - Cache-busted with `?t=timestamp` on every request
 - Silent failure if fetch fails - no UI error shown
 - Live bar shown at top when results are available or matches are live
+
+## Group standings tables
+
+`calcGroupStandings(group)` computes live standings from `liveResults` on each render. Any match with a result in `liveResults` (including LIVE/HT mid-game scores) contributes to the table — so standings update in real-time during live matches.
+
+Standings are sorted by: Pts desc → GD desc → GF desc → alphabetical.
+
+The group card in the Groups tab shows:
+- **No results yet**: team list in draw order (same as before)
+- **Results exist + scores visible**: compact standings table (Pos, flag+name, Pts, GD)
+- **Results exist + scores hidden**: team list in draw order (standings would reveal results)
+
+## Score spoiler toggle
+
+A "Hide scores" button in the fixtures toolbar (`#scoreToggle`, class `.score-toggle-btn`) lets users suppress all score information.
+
+When `hideScores` is true:
+- Match cards show "vs" instead of the score, with no FT/HT/LIVE badge
+- No `is-live` red border on cards (would reveal a game is in progress)
+- Live bar shows "Scores available - hidden" instead of live match count
+- Group standings revert to team list (standings reveal results)
+- Shimmer skeleton is suppressed (would hint at live activity)
+
+State persisted in `localStorage` key `wc26-hide-scores`. Button starts with correct state on load (initialised in `init()`).
 
 ## PWA install prompt
 
