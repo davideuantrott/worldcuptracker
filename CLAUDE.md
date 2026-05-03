@@ -237,6 +237,52 @@ Three modes triggered from the UI:
 - **`fmtIcsDate` / `fmtIcsDateEnd` already include the trailing `Z`** (from `toISOString()`). Do NOT append `Z` again in `DTSTART`/`DTEND` lines — a double `ZZ` causes calendar apps to misparse the timestamp as local time, shifting the event 1 hour early for BST users.
 - **Event titles** use the format `Home vs. Away - Channel` (e.g. `Haiti vs. Scotland - BBC`). Channel suffix is omitted when `uk` is `TBA` or absent. All three calendar paths (ICS download, Google Calendar URL, Outlook URL) use the same format.
 
+## NEXT IMPLEMENTATION: API-sourced group standings
+
+**Goal:** Replace client-side `calcGroupStandings()` with official standings from the football-data.org API, falling back to auto-calculated standings only during live matches (where the API lags behind until FT).
+
+### Backend changes (`api/update-scores.js`)
+
+Fetch standings alongside scores on every cron run:
+
+```js
+const standingsRes = await fetch('https://api.football-data.org/v4/competitions/WC/standings', {
+  headers: { 'X-Auth-Token': process.env.FOOTBALL_DATA_API_KEY }
+});
+const standingsData = await standingsRes.json();
+```
+
+Transform into a compact format and write to a second Vercel Blob as `standings.json`:
+
+```json
+{
+  "A": [
+    { "team": "Mexico", "pos": 1, "p": 3, "w": 2, "d": 1, "l": 0, "gf": 5, "ga": 2, "gd": 3, "pts": 7 }
+  ],
+  "B": [ ... ]
+}
+```
+
+The API response shape is `data.standings[].table[]` with fields: `position`, `team.name`, `playedGames`, `won`, `draw`, `lost`, `goalsFor`, `goalsAgainst`, `goalDifference`, `points`. Filter for `type === 'TOTAL'` entries only.
+
+### `vercel.json` changes
+
+Add a rewrite for `/standings.json` pointing to the new Blob URL (same pattern as existing `/scores.json` rewrite). Add the Blob URL to the CSP `connect-src` directive if needed.
+
+### Frontend changes (`index.html`)
+
+- Add `let apiStandings = {};` to state
+- Fetch `/standings.json?t=timestamp` in `fetchScores()` alongside scores (parallel fetch, silent fail)
+- In `renderGroups()`: use `apiStandings[g]` when available, fall back to `calcGroupStandings(g)` only when any match in the group has status `LIVE` or `HT` in `liveResults` (the API won't have updated yet mid-match)
+- Keep `calcGroupStandings()` in place — it becomes the live-only fallback, not the primary source
+
+### Why this approach is correct
+
+- Official API standings handle tiebreakers (head-to-head, fair play, FIFA ranking) automatically
+- Auto-calculated standings are only used during live play, where real-time score reflection matters more than perfect tiebreaker accuracy
+- After each match reaches FT the API standings update and take over again
+- No edge case logic to maintain for points deductions, forfeits, etc.
+
 ## Tone and conventions
 
 - No framework dependencies - keep it vanilla JS
