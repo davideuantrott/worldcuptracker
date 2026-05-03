@@ -3,6 +3,10 @@
     {
       "source": "/scores.json",
       "destination": "https://kdoazmegsbme4ynq.public.blob.vercel-storage.com/scores.json"
+    },
+    {
+      "source": "/standings.json",
+      "destination": "https://kdoazmegsbme4ynq.public.blob.vercel-storage.com/standings.json"
     }
   ],
   "headers": [
@@ -17,6 +21,13 @@
     },
     {
       "source": "/scores.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    },
+    {
+      "source": "/standings.json",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
         { "key": "Access-Control-Allow-Origin", "value": "*" }

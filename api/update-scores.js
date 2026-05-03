@@ -151,12 +151,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const response = await fetch('https://api.football-data.org/v4/competitions/WC/matches', {
-      headers: {
-        'X-Auth-Token': apiKey,
-        'Content-Type': 'application/json',
-      },
-    });
+    const [response, standingsRes] = await Promise.all([
+      fetch('https://api.football-data.org/v4/competitions/WC/matches', {
+        headers: { 'X-Auth-Token': apiKey, 'Content-Type': 'application/json' },
+      }),
+      fetch('https://api.football-data.org/v4/competitions/WC/standings', {
+        headers: { 'X-Auth-Token': apiKey },
+      }).catch(() => null),
+    ]);
 
     if (!response.ok) {
       throw new Error(`API error: ${response.status}`);
@@ -202,8 +204,50 @@ export default async function handler(req, res) {
       cacheControlMaxAge: 0,
     });
 
-    console.log(`Updated scores.json: ${Object.keys(scores).length} results at ${blob.url}`);
-    return res.status(200).json({ ok: true, count: Object.keys(scores).length, url: blob.url });
+    let standingsCount = 0;
+    if (standingsRes && standingsRes.ok) {
+      const standingsData = await standingsRes.json();
+      const standings = {};
+
+      (standingsData.standings || [])
+        .filter(s => s.type === 'TOTAL')
+        .forEach(groupStanding => {
+          const m = (groupStanding.group || '').match(/([A-L])$/);
+          if (!m) return;
+          const letter = m[1];
+          standings[letter] = (groupStanding.table || []).map(entry => {
+            const localName = Object.keys(TEAM_NAME_MAP).find(k =>
+              TEAM_NAME_MAP[k].some(a => normalise(a) === normalise(entry.team.name))
+            ) || entry.team.name;
+            return {
+              team: localName,
+              pos: entry.position,
+              p: entry.playedGames,
+              w: entry.won,
+              d: entry.draw,
+              l: entry.lost,
+              gf: entry.goalsFor,
+              ga: entry.goalsAgainst,
+              gd: entry.goalDifference,
+              pts: entry.points,
+            };
+          });
+          standingsCount += standings[letter].length;
+        });
+
+      if (Object.keys(standings).length > 0) {
+        await put('standings.json', JSON.stringify(standings), {
+          access: 'public',
+          contentType: 'application/json',
+          addRandomSuffix: false,
+          allowOverwrite: true,
+          cacheControlMaxAge: 0,
+        });
+      }
+    }
+
+    console.log(`Updated scores.json: ${Object.keys(scores).length} results, standings: ${standingsCount} entries at ${blob.url}`);
+    return res.status(200).json({ ok: true, count: Object.keys(scores).length, standingsCount, url: blob.url });
 
   } catch (err) {
     console.error('Score update failed:', err);

@@ -231,6 +231,22 @@
     .score-toggle-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'Barlow',sans-serif;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;transition:var(--t-color);margin-left:auto;flex-shrink:0;}
     .score-toggle-btn:hover{border-color:var(--accent);color:var(--accent);}
     .score-toggle-btn.scores-hidden{border-color:var(--accent);color:var(--accent);background:var(--accent-muted);}
+
+    /* STANDINGS TAB */
+    .standings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;}
+    .standings-group{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px;animation:cardReveal 0.3s var(--ease-spring) both;animation-delay:calc(var(--i,0)*25ms);}
+    .standings-group-title{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
+    .standings-table{width:100%;border-collapse:collapse;table-layout:auto;}
+    .standings-table th{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.3px;padding:0 3px 4px;text-align:right;white-space:nowrap;}
+    .standings-table th.st-team-h{text-align:left;padding-left:0;}
+    .standings-table td{font-size:12px;padding:4px 3px;text-align:right;vertical-align:middle;}
+    .standings-table tbody tr{border-top:1px solid rgba(255,255,255,0.04);}
+    .standings-table tbody tr:first-child{border-top:none;}
+    .st-pos-cell{text-align:center!important;color:var(--muted);font-size:10px;padding-left:0!important;width:14px;}
+    .st-team-cell{text-align:left!important;padding-left:0!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .st-gd-cell{color:var(--muted);}
+    .st-pts-cell{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:14px;color:var(--text);}
+    .standings-table tr.st-my-team .st-team-cell,.standings-table tr.st-my-team .st-pts-cell{color:var(--accent);}
   </style>
 </head>
 <body>
@@ -301,6 +317,7 @@
   <div class="tabs-inner">
     <button class="tab-btn active" data-tab="fixtures">Fixtures</button>
     <button class="tab-btn" data-tab="groups">Groups</button>
+    <button class="tab-btn" data-tab="standings">Standings</button>
     <button class="tab-btn" data-tab="knockout">Knockout</button>
   </div>
 </div>
@@ -321,6 +338,10 @@
   <div id="tab-groups" class="tab-content">
     <div style="margin-bottom:10px;font-size:12px;color:var(--muted)">Tap a group to filter fixtures. All 12 groups - 48 teams.</div>
     <div class="groups-grid" id="groupsGrid"></div>
+  </div>
+
+  <div id="tab-standings" class="tab-content">
+    <div class="standings-grid" id="standingsContainer"></div>
   </div>
 
   <div id="tab-knockout" class="tab-content">
@@ -528,6 +549,7 @@ const ALL_MATCHES = [...MATCHES, ...KNOCKOUT_ROUNDS.flatMap(r => r.matches)];
 let selectedTeam = '', selectedGroup = '';
 let tzOffset = 1;
 let liveResults = {};
+let apiStandings = {};
 let pollTimer = null, liveCount = 0;
 let hideScores = localStorage.getItem('wc26-hide-scores') === '1';
 let modalContext = null; // { type: 'single'|'team'|'group', match?, team?, group? }
@@ -947,11 +969,19 @@ function renderFixtures() {
   c.innerHTML = html;
 }
 
+function groupStandings(g) {
+  const hasLive = MATCHES.filter(m => m.group === g).some(m => {
+    const r = liveResults[m.id];
+    return r && (r.status === 'LIVE' || r.status === 'HT');
+  });
+  return (apiStandings[g] && !hasLive) ? apiStandings[g] : calcGroupStandings(g);
+}
+
 function renderGroups() {
   let html = '';
   Object.entries(GROUPS).forEach(([g,teams], gi) => {
     const active = selectedGroup===g&&!selectedTeam;
-    const standings = calcGroupStandings(g);
+    const standings = groupStandings(g);
     const hasResults = standings.some(s => s.p > 0);
     const showTable = hasResults && !hideScores;
 
@@ -980,6 +1010,48 @@ function renderGroups() {
     html += '</div>';
   });
   document.getElementById('groupsGrid').innerHTML = html;
+}
+
+function renderStandings() {
+  const c = document.getElementById('standingsContainer');
+  let html = '';
+  Object.entries(GROUPS).forEach(([g, teams], gi) => {
+    const standings = groupStandings(g);
+    const hasResults = standings.some(s => s.p > 0);
+    const showTable = !hideScores || !hasResults;
+
+    html += `<div class="standings-group" style="--i:${gi}">
+      <div class="standings-group-title">Group ${g}</div>`;
+
+    if (showTable) {
+      html += `<table class="standings-table">
+        <thead><tr>
+          <th></th>
+          <th class="st-team-h">Team</th>
+          <th>P</th><th>W</th><th>D</th><th>L</th>
+          <th>GD</th><th>Pts</th>
+        </tr></thead><tbody>`;
+      standings.forEach((s, pos) => {
+        const isMyTeam = selectedTeam === s.team;
+        const gd = s.gd > 0 ? '+'+s.gd : String(s.gd);
+        html += `<tr${isMyTeam ? ' class="st-my-team"' : ''}>
+          <td class="st-pos-cell">${pos+1}</td>
+          <td class="st-team-cell">${FLAGS[s.team]||''} ${s.team}</td>
+          <td>${s.p}</td><td>${s.w}</td><td>${s.d}</td><td>${s.l}</td>
+          <td class="st-gd-cell">${s.gd===0?'0':gd}</td>
+          <td class="st-pts-cell">${s.pts}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+    } else {
+      teams.forEach(t => {
+        html += `<div class="group-team ${selectedTeam===t?'my-team':''}">${FLAGS[t]||'🌐'} ${t}</div>`;
+      });
+    }
+
+    html += '</div>';
+  });
+  c.innerHTML = html;
 }
 
 function getTeamGroup(t) {
@@ -1041,6 +1113,7 @@ function renderKnockout() {
 function renderAll() {
   renderFixtures();
   renderGroups();
+  renderStandings();
   renderKnockout();
   updateBanner();
 }
@@ -1069,27 +1142,42 @@ function updateBanner() {
 // SCORES (fetch from your backend /scores.json)
 // =============================================
 async function fetchScores() {
+  const t = Date.now();
   try {
-    const r = await fetch(SCORES_URL + '?t=' + Date.now()); // cache-bust
-    if (!r.ok) return;
-    const data = await r.json();
-    // Expected format: { "g1": { home: 2, away: 1, status: "FT", minute: null }, ... }
+    const [scoresRes, standingsRes] = await Promise.all([
+      fetch(SCORES_URL + '?t=' + t),
+      fetch('/standings.json?t=' + t).catch(() => null),
+    ]);
+
     let changed = false, liveNow = 0;
-    Object.entries(data).forEach(([id, result]) => {
-      const prev = liveResults[id];
-      if (!prev || prev.home!==result.home || prev.away!==result.away || prev.status!==result.status) changed = true;
-      liveResults[id] = {
-        home: parseInt(result.home, 10),
-        away: parseInt(result.away, 10),
-        status: result.status,
-        minute: result.minute != null ? parseInt(result.minute, 10) : null,
-      };
-      if (result.status==='LIVE'||result.status==='HT') liveNow++;
-    });
-    liveCount = liveNow;
-    updateLiveBar();
+
+    if (scoresRes.ok) {
+      const data = await scoresRes.json();
+      Object.entries(data).forEach(([id, result]) => {
+        const prev = liveResults[id];
+        if (!prev || prev.home!==result.home || prev.away!==result.away || prev.status!==result.status) changed = true;
+        liveResults[id] = {
+          home: parseInt(result.home, 10),
+          away: parseInt(result.away, 10),
+          status: result.status,
+          minute: result.minute != null ? parseInt(result.minute, 10) : null,
+        };
+        if (result.status==='LIVE'||result.status==='HT') liveNow++;
+      });
+      liveCount = liveNow;
+      updateLiveBar();
+      document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    }
+
+    if (standingsRes && standingsRes.ok) {
+      const sdata = await standingsRes.json();
+      if (JSON.stringify(sdata) !== JSON.stringify(apiStandings)) {
+        apiStandings = sdata;
+        changed = true;
+      }
+    }
+
     if (changed) renderAll();
-    document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
   } catch(e) { /* silently fail */ }
 }
 

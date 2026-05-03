@@ -237,51 +237,31 @@ Three modes triggered from the UI:
 - **`fmtIcsDate` / `fmtIcsDateEnd` already include the trailing `Z`** (from `toISOString()`). Do NOT append `Z` again in `DTSTART`/`DTEND` lines — a double `ZZ` causes calendar apps to misparse the timestamp as local time, shifting the event 1 hour early for BST users.
 - **Event titles** use the format `Home vs. Away - Channel` (e.g. `Haiti vs. Scotland - BBC`). Channel suffix is omitted when `uk` is `TBA` or absent. All three calendar paths (ICS download, Google Calendar URL, Outlook URL) use the same format.
 
-## NEXT IMPLEMENTATION: API-sourced group standings
+## Group standings - API-sourced
 
-**Goal:** Replace client-side `calcGroupStandings()` with official standings from the football-data.org API, falling back to auto-calculated standings only during live matches (where the API lags behind until FT).
+`apiStandings` state variable is populated from `/standings.json` (Blob-backed), fetched in parallel with scores on every poll cycle. The backend writes it from `data.standings[].table[]`, filtering for `type === 'TOTAL'`, extracting the group letter from the `group` field (e.g. `GROUP_A` → `A`).
 
-### Backend changes (`api/update-scores.js`)
-
-Fetch standings alongside scores on every cron run:
-
-```js
-const standingsRes = await fetch('https://api.football-data.org/v4/competitions/WC/standings', {
-  headers: { 'X-Auth-Token': process.env.FOOTBALL_DATA_API_KEY }
-});
-const standingsData = await standingsRes.json();
-```
-
-Transform into a compact format and write to a second Vercel Blob as `standings.json`:
-
+`standings.json` format:
 ```json
 {
-  "A": [
-    { "team": "Mexico", "pos": 1, "p": 3, "w": 2, "d": 1, "l": 0, "gf": 5, "ga": 2, "gd": 3, "pts": 7 }
-  ],
-  "B": [ ... ]
+  "A": [{ "team": "Mexico", "pos": 1, "p": 3, "w": 2, "d": 1, "l": 0, "gf": 5, "ga": 2, "gd": 3, "pts": 7 }],
+  "B": [...]
 }
 ```
 
-The API response shape is `data.standings[].table[]` with fields: `position`, `team.name`, `playedGames`, `won`, `draw`, `lost`, `goalsFor`, `goalsAgainst`, `goalDifference`, `points`. Filter for `type === 'TOTAL'` entries only.
+### Fallback logic (`groupStandings(g)` helper)
 
-### `vercel.json` changes
+Uses `apiStandings[g]` when available. Falls back to `calcGroupStandings(g)` only when any match in that group has status `LIVE` or `HT` in `liveResults` (the API lags until FT). `calcGroupStandings()` remains in place as the live-only fallback.
 
-Add a rewrite for `/standings.json` pointing to the new Blob URL (same pattern as existing `/scores.json` rewrite). Add the Blob URL to the CSP `connect-src` directive if needed.
+Both `renderGroups()` and `renderStandings()` call `groupStandings(g)` for consistency.
 
-### Frontend changes (`index.html`)
+## Standings tab
 
-- Add `let apiStandings = {};` to state
-- Fetch `/standings.json?t=timestamp` in `fetchScores()` alongside scores (parallel fetch, silent fail)
-- In `renderGroups()`: use `apiStandings[g]` when available, fall back to `calcGroupStandings(g)` only when any match in the group has status `LIVE` or `HT` in `liveResults` (the API won't have updated yet mid-match)
-- Keep `calcGroupStandings()` in place — it becomes the live-only fallback, not the primary source
+A dedicated Standings tab (4th tab) shows full group tables for all 12 groups in a responsive grid (3 columns desktop, 2 tablet, 1 mobile).
 
-### Why this approach is correct
+Columns: Pos, Flag+Team, P, W, D, L, GD, Pts.
 
-- Official API standings handle tiebreakers (head-to-head, fair play, FIFA ranking) automatically
-- Auto-calculated standings are only used during live play, where real-time score reflection matters more than perfect tiebreaker accuracy
-- After each match reaches FT the API standings update and take over again
-- No edge case logic to maintain for points deductions, forfeits, etc.
+Tables are always shown, including pre-tournament when all values are 0 (unlike the compact group cards which only show a table when results exist). When `hideScores` is on and results exist, standings revert to team list in draw order (same as Groups tab). Source: `groupStandings(g)` with LIVE-match fallback to `calcGroupStandings()`.
 
 ## Tone and conventions
 
