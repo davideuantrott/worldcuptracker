@@ -139,6 +139,11 @@ function findLocalMatch(apiHome, apiAway) {
   );
 }
 
+// Module-level cache: Vercel keeps functions warm between 5-min cron invocations,
+// so this avoids redundant Blob writes when data hasn't changed.
+let cachedScores = null;
+let cachedStandings = null;
+
 export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
   if (cronSecret && req.headers['x-cron-secret'] !== cronSecret) {
@@ -196,15 +201,25 @@ export default async function handler(req, res) {
     });
 
     const { put } = await import('@vercel/blob');
-    const blob = await put('scores.json', JSON.stringify(scores), {
-      access: 'public',
-      contentType: 'application/json',
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      cacheControlMaxAge: 0,
-    });
+    const newScoresStr = JSON.stringify(scores);
+    let blobUrl;
+    let scoresWritten = false;
+
+    if (newScoresStr !== cachedScores) {
+      const blob = await put('scores.json', newScoresStr, {
+        access: 'public',
+        contentType: 'application/json',
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        cacheControlMaxAge: 0,
+      });
+      cachedScores = newScoresStr;
+      blobUrl = blob.url;
+      scoresWritten = true;
+    }
 
     let standingsCount = 0;
+    let standingsWritten = false;
     if (standingsRes && standingsRes.ok) {
       const standingsData = await standingsRes.json();
       const standings = {};
@@ -236,18 +251,23 @@ export default async function handler(req, res) {
         });
 
       if (Object.keys(standings).length > 0) {
-        await put('standings.json', JSON.stringify(standings), {
-          access: 'public',
-          contentType: 'application/json',
-          addRandomSuffix: false,
-          allowOverwrite: true,
-          cacheControlMaxAge: 0,
-        });
+        const newStandingsStr = JSON.stringify(standings);
+        if (newStandingsStr !== cachedStandings) {
+          await put('standings.json', newStandingsStr, {
+            access: 'public',
+            contentType: 'application/json',
+            addRandomSuffix: false,
+            allowOverwrite: true,
+            cacheControlMaxAge: 0,
+          });
+          cachedStandings = newStandingsStr;
+          standingsWritten = true;
+        }
       }
     }
 
-    console.log(`Updated scores.json: ${Object.keys(scores).length} results, standings: ${standingsCount} entries at ${blob.url}`);
-    return res.status(200).json({ ok: true, count: Object.keys(scores).length, standingsCount, url: blob.url });
+    console.log(`scores: ${Object.keys(scores).length} results (written: ${scoresWritten}), standings: ${standingsCount} entries (written: ${standingsWritten})`);
+    return res.status(200).json({ ok: true, count: Object.keys(scores).length, scoresWritten, standingsCount, standingsWritten, url: blobUrl });
 
   } catch (err) {
     console.error('Score update failed:', err);

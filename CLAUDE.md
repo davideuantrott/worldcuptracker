@@ -12,6 +12,7 @@ Built as a single-file static frontend with a Vercel serverless backend for scor
 - **Blob storage:** https://kdoazmegsbme4ynq.public.blob.vercel-storage.com/scores.json
 - **Score updater cron:** cron-job.org (calls `/api/update-scores` every 5 minutes)
   - Vercel Hobby plan does not support frequent crons - cron-job.org is used instead
+  - `update-scores.js` uses module-level `cachedScores`/`cachedStandings` variables to skip Blob `put()` calls when data hasn't changed — prevents burning the free tier's 2,000 Advanced Requests/month limit during pre-tournament when scores never change
 
 ## IMPORTANT: After every deployment
 
