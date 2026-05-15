@@ -24,7 +24,7 @@ Built as a single-file static frontend with a Vercel serverless backend for scor
 - **Backend:** Vercel Serverless Functions (Node.js, ESM)
 - **Score storage:** Vercel Blob Storage - serves `scores.json` publicly
 - **Score source:** football-data.org API (free tier, WC competition code: `WC`)
-- **Hosting:** Vercel (static + serverless, free tier)
+- **Hosting:** Vercel (static + serverless, Pro plan — upgraded May 2026 after hitting the Hobby Blob limit; plan to downgrade back to Hobby around June 1 once the May billing period resets, as tournament usage is estimated well within Hobby limits)
 - **Fonts:** Google Fonts - Barlow Condensed + Barlow (loaded from CDN)
 - **PWA:** manifest.json + sw.js service worker for offline caching
 
