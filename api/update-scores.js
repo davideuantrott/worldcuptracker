@@ -172,6 +172,14 @@ export default async function handler(req, res) {
     const data = await response.json();
     const scores = {};
 
+    // Debug: capture the raw score object from the first few matches to diagnose field names
+    const debugSample = (data.matches || []).slice(0, 5).map(m => ({
+      status: m.status,
+      home: m.homeTeam?.name,
+      away: m.awayTeam?.name,
+      score: m.score,
+    }));
+
     (data.matches || []).forEach(m => {
       const local = findLocalMatch(m.homeTeam.name, m.awayTeam.name);
       if (!local) return;
@@ -271,7 +279,7 @@ export default async function handler(req, res) {
     }
 
     console.log(`scores: ${Object.keys(scores).length} results (written: ${scoresWritten}), standings: ${standingsCount} entries (written: ${standingsWritten})`);
-    return res.status(200).json({ ok: true, apiMatchCount: data.matches?.length ?? 0, includedMatchCount: Object.keys(scores).length, scores, scoresWritten, standingsCount, standingsWritten, url: blobUrl });
+    return res.status(200).json({ ok: true, apiMatchCount: data.matches?.length ?? 0, includedMatchCount: Object.keys(scores).length, scores, scoresWritten, standingsCount, standingsWritten, url: blobUrl, debugSample });
 
   } catch (err) {
     console.error('Score update failed:', err);
