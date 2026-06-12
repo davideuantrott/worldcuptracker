@@ -13,6 +13,7 @@ Built as a single-file static frontend with a Vercel serverless backend for scor
 - **Score updater cron:** cron-job.org (calls `/api/update-scores` every 5 minutes)
   - Vercel Hobby plan does not support frequent crons - cron-job.org is used instead
   - `update-scores.js` uses module-level `cachedScores`/`cachedStandings` variables to skip Blob `put()` calls when data hasn't changed — prevents burning the free tier's 2,000 Advanced Requests/month limit during pre-tournament when scores never change
+  - Score extraction tries `score.fullTime` → `score.regularTime` → `score.halfTime` (in that order) — `regularTime` added as WC2026 API uses this field variant. Response includes `apiMatchCount` and `includedMatchCount` for debugging via cron-job.org logs.
 
 ## IMPORTANT: After every deployment
 
@@ -184,6 +185,15 @@ Match times are stored as UTC in the `MATCHES` array and converted for display v
 - Cache-busted with `?t=timestamp` on every request
 - Silent failure if fetch fails - no UI error shown
 - Live bar shown at top when results are available or matches are live
+- `scoresInitialized` flag (set on first successful `/scores.json` response) controls whether the shimmer skeleton shows — skeleton only appears before the first fetch returns; after that, "vs" is shown for unscored matches rather than a perpetual loading box
+
+## Fixture list - past match handling
+
+`renderFixtures()` computes `todayKey` (local date string) on each render:
+- Past date sections (key < todayKey) get class `section-past` and dimmed styling (opacity 0.5)
+- Today's section gets `id="fixtures-today"` and a lime "TODAY" pill in the header
+- Match cards get `is-past` class when their section is past OR when `liveResults[m.id]?.status === 'FT'` — but never on currently `LIVE` matches
+- On the first render of each Fixtures tab visit, `scrollIntoView({ behavior: 'instant', block: 'start' })` scrolls to `#fixtures-today`. `hasScrolledToToday` flag prevents re-scrolling on score-update re-renders; it resets when the user taps the Fixtures tab.
 
 ## Group standings tables
 

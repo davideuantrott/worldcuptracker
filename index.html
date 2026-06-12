@@ -122,6 +122,14 @@
     .badge-ht{background:rgba(232,68,58,0.15);color:var(--live-color);}
     .badge-ft{background:rgba(80,200,120,0.12);color:#6ddfaa;}
 
+    /* PAST MATCH STYLING */
+    .match-card.is-past{opacity:0.5;}
+    .match-card.is-past .team-name{color:var(--muted);}
+    .section.section-past .section-title{opacity:0.5;}
+
+    /* TODAY PILL */
+    .today-pill{background:var(--accent);color:var(--bg);font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:1.5px;text-transform:uppercase;vertical-align:middle;}
+
     /* CALENDAR BUTTON */
     .cal-btn{background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:3px 7px;border-radius:4px;cursor:pointer;flex-shrink:0;transition:var(--t-interactive);display:flex;align-items:center;gap:4px;margin-left:auto;will-change:transform;}
     .cal-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -552,6 +560,8 @@ let liveResults = {};
 let apiStandings = {};
 let pollTimer = null, liveCount = 0;
 let hideScores = localStorage.getItem('wc26-hide-scores') === '1';
+let scoresInitialized = false;
+let hasScrolledToToday = false;
 let modalContext = null; // { type: 'single'|'team'|'group', match?, team?, group? }
 let originatingCalBtn = null;
 
@@ -889,7 +899,7 @@ function tvBadge(uk) {
 // =============================================
 // MATCH CARD
 // =============================================
-function matchCard(m, type='normal', idx=0) {
+function matchCard(m, type='normal', idx=0, isPast=false) {
   const {time,date} = toLocal(m.date, m.utc);
   const isHome = selectedTeam && m.home===selectedTeam;
   const isAway = selectedTeam && m.away===selectedTeam;
@@ -899,6 +909,7 @@ function matchCard(m, type='normal', idx=0) {
   if (type==='confirmed') cls+=' team-match';
   else if (type==='possible') cls+=' team-possible';
   if (res && res.status==='LIVE' && !hideScores) cls+=' is-live';
+  if (isPast && !(res && res.status==='LIVE')) cls+=' is-past';
 
   let centerHtml;
   if (res && !hideScores) {
@@ -913,7 +924,7 @@ function matchCard(m, type='normal', idx=0) {
     const now = Date.now();
     const ko = parseKickoff(m.date, m.utc).getTime();
     const scoresEmpty = Object.keys(liveResults).length === 0;
-    const mightBeLive = !hideScores && scoresEmpty && ko <= now && now <= ko + 130*60000;
+    const mightBeLive = !hideScores && !scoresInitialized && ko <= now && now <= ko + 130*60000;
     centerHtml = `<div class="score-center">${mightBeLive ? '<div class="score-skeleton"></div>' : '<div class="vs-text">vs</div>'}${sb}</div>`;
   }
 
@@ -956,17 +967,30 @@ function renderFixtures() {
     byDate[k].push(m);
   });
 
+  const todayKey = localKey(new Date().toISOString().slice(0, 10), '00:00');
+
   let html = selectedTeam ? '<div class="legend"><div class="legend-item"><div class="legend-dot dot-confirmed"></div> Your team</div></div>' : '';
   let cardIdx = 0;
   Object.keys(byDate).sort().forEach(k => {
-    html += `<div class="section"><div class="section-title">${formatDate(k)}</div>`;
+    const sectionIsPast = k < todayKey;
+    const isToday = k === todayKey;
+    const todayAttr = isToday ? ' id="fixtures-today"' : '';
+    const pastClass = sectionIsPast ? ' section-past' : '';
+    const todayPill = isToday ? ' <span class="today-pill">Today</span>' : '';
+    html += `<div class="section${pastClass}"${todayAttr}><div class="section-title">${formatDate(k)}${todayPill}</div>`;
     byDate[k].sort((a,b)=>a.utc.localeCompare(b.utc)).forEach(m => {
       const t = selectedTeam&&(m.home===selectedTeam||m.away===selectedTeam)?'confirmed':'normal';
-      html += matchCard(m, t, Math.min(cardIdx++, 18));
+      const cardIsPast = sectionIsPast || liveResults[m.id]?.status === 'FT';
+      html += matchCard(m, t, Math.min(cardIdx++, 18), cardIsPast);
     });
     html += '</div>';
   });
   c.innerHTML = html;
+
+  if (!hasScrolledToToday) {
+    document.getElementById('fixtures-today')?.scrollIntoView({ behavior: 'instant', block: 'start' });
+    hasScrolledToToday = true;
+  }
 }
 
 function groupStandings(g) {
@@ -1152,6 +1176,7 @@ async function fetchScores() {
     let changed = false, liveNow = 0;
 
     if (scoresRes.ok) {
+      scoresInitialized = true;
       const data = await scoresRes.json();
       Object.entries(data).forEach(([id, result]) => {
         const prev = liveResults[id];
@@ -1215,6 +1240,7 @@ function selectGroup(g) {
   switchTab('fixtures');
 }
 function switchTab(name) {
+  if (name === 'fixtures') hasScrolledToToday = false;
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
   document.querySelector(`[data-tab="${name}"]`).classList.add('active');

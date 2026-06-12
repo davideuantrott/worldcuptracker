@@ -177,10 +177,14 @@ export default async function handler(req, res) {
       if (!local) return;
 
       const score = m.score;
-      const homeGoals = score?.fullTime?.home ?? score?.halfTime?.home ?? null;
-      const awayGoals = score?.fullTime?.away ?? score?.halfTime?.away ?? null;
+      // football-data.org v4 uses fullTime for most competitions; WC may use regularTime
+      const homeGoals = score?.fullTime?.home ?? score?.regularTime?.home ?? score?.halfTime?.home ?? null;
+      const awayGoals = score?.fullTime?.away ?? score?.regularTime?.away ?? score?.halfTime?.away ?? null;
 
-      if (homeGoals === null || homeGoals === undefined) return;
+      const isInPlay = m.status === 'IN_PLAY';
+      if ((homeGoals === null || homeGoals === undefined) && !isInPlay) return;
+      const finalHome = homeGoals ?? 0;
+      const finalAway = awayGoals ?? 0;
 
       let status;
       switch (m.status) {
@@ -193,8 +197,8 @@ export default async function handler(req, res) {
       }
 
       scores[local.id] = {
-        home: homeGoals,
-        away: awayGoals,
+        home: finalHome,
+        away: finalAway,
         status,
         minute: m.minute || null,
       };
@@ -267,7 +271,7 @@ export default async function handler(req, res) {
     }
 
     console.log(`scores: ${Object.keys(scores).length} results (written: ${scoresWritten}), standings: ${standingsCount} entries (written: ${standingsWritten})`);
-    return res.status(200).json({ ok: true, count: Object.keys(scores).length, scoresWritten, standingsCount, standingsWritten, url: blobUrl });
+    return res.status(200).json({ ok: true, apiMatchCount: data.matches?.length ?? 0, includedMatchCount: Object.keys(scores).length, scores, scoresWritten, standingsCount, standingsWritten, url: blobUrl });
 
   } catch (err) {
     console.error('Score update failed:', err);
