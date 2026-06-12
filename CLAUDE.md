@@ -35,7 +35,7 @@ Built as a single-file static frontend with a Vercel serverless backend for scor
 index.html                  Primary PWA - all UI, state, and calendar logic
 manifest.json               PWA manifest
 sw.js                       Service worker (network-first for scores, cache-first for assets)
-scores.json                 Placeholder - live scores served from Blob via /scores.json rewrite
+scores.json                 DELETED — do not recreate. A static file at this path blocks Vercel from applying the /scores.json → Blob rewrite. Live scores come from the Blob URL via the rewrite in vercel.json.
 vercel.json                 Routing + header config (no crons - handled by cron-job.org)
 package.json                Node deps (type: module, @vercel/blob)
 node_modules/               Dependencies
