@@ -7,6 +7,10 @@
     {
       "source": "/standings.json",
       "destination": "https://kdoazmegsbme4ynq.public.blob.vercel-storage.com/standings.json"
+    },
+    {
+      "source": "/feeds/:slug.ics",
+      "destination": "/api/feed?slug=:slug"
     }
   ],
   "headers": [

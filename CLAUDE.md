@@ -241,7 +241,8 @@ Three modes triggered from the UI:
 3. **Group bulk** - all group stage matches as .ics download
 4. **Subscribe feed** - webcal:// URL for Apple, Google Calendar subscribe URL,
    Outlook instructions. Feed URL format: `BASE_URL/feeds/{slug}.ics`
-   (feed serving endpoint not yet implemented - see HANDOFF.md task 2)
+   Served by `api/feed.js` via the `/feeds/:slug.ics` to `/api/feed?slug=:slug` rewrite in `vercel.json`.
+   Slug format: team uses `team.replace(/[^a-z0-9]/gi,'_').toLowerCase()` (e.g. `scotland`, `south_korea`); group uses `group_a` through `group_l`.
 
 ### ICS generation gotchas
 
