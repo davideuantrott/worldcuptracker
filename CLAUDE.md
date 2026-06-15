@@ -190,9 +190,10 @@ Match times are stored as UTC in the `MATCHES` array and converted for display v
 ## Fixture list - past match handling
 
 `renderFixtures()` computes `todayKey` (local date string) on each render:
-- Past date sections (key < todayKey) get class `section-past` and dimmed styling (opacity 0.5)
+- Past date sections (key < todayKey) get class `section-past` — their section title fades to opacity 0.4 and loses the lime accent bar (replaced by `var(--muted)` grey)
 - Today's section gets `id="fixtures-today"` and a lime "TODAY" pill in the header
 - Match cards get `is-past` class when their section is past OR when `liveResults[m.id]?.status === 'FT'` — but never on currently `LIVE` matches
+- `is-past` cards use `background: var(--bg)` (page colour) so they visually recede, plus a faded border, suppressed hover highlight, and muted meta text — four distinct signals that a match is concluded
 - On the first render of each Fixtures tab visit, `scrollIntoView({ behavior: 'instant', block: 'start' })` scrolls to `#fixtures-today`. `hasScrolledToToday` flag prevents re-scrolling on score-update re-renders; it resets when the user taps the Fixtures tab.
 - Matches within each date group are sorted by `parseKickoff(m.date, m.utc)` (actual UTC timestamp), **not** by `m.utc` string — sorting by the UTC string would place late-night matches (e.g. 23:00 UTC = 00:00 BST) at the end of the local-date group instead of the start.
 
@@ -209,7 +210,7 @@ The group card in the Groups tab shows:
 
 ## Score spoiler toggle
 
-A "Hide scores" button in the fixtures toolbar (`#scoreToggle`, class `.score-toggle-btn`) lets users suppress all score information.
+A "Hide scores" / "Show scores" button (`#scoreToggle`, class `.score-toggle-btn`) lives in the **sticky header** (between the team selector and the Clear button), so it is always accessible without scrolling. Do not move it back into the fixtures tab toolbar.
 
 When `hideScores` is true:
 - Match cards show "vs" instead of the score, with no FT/HT/LIVE badge
