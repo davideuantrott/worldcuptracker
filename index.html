@@ -978,7 +978,7 @@ function renderFixtures() {
     const pastClass = sectionIsPast ? ' section-past' : '';
     const todayPill = isToday ? ' <span class="today-pill">Today</span>' : '';
     html += `<div class="section${pastClass}"${todayAttr}><div class="section-title">${formatDate(k)}${todayPill}</div>`;
-    byDate[k].sort((a,b)=>a.utc.localeCompare(b.utc)).forEach(m => {
+    byDate[k].sort((a,b)=>parseKickoff(a.date,a.utc)-parseKickoff(b.date,b.utc)).forEach(m => {
       const t = selectedTeam&&(m.home===selectedTeam||m.away===selectedTeam)?'confirmed':'normal';
       const cardIsPast = sectionIsPast || liveResults[m.id]?.status === 'FT';
       html += matchCard(m, t, Math.min(cardIdx++, 18), cardIsPast);
