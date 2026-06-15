@@ -123,9 +123,12 @@
     .badge-ft{background:rgba(80,200,120,0.12);color:#6ddfaa;}
 
     /* PAST MATCH STYLING */
-    .match-card.is-past{opacity:0.5;}
+    .match-card.is-past{opacity:0.6;background:var(--bg);border-color:rgba(30,42,20,0.45);}
+    .match-card.is-past:hover{border-color:rgba(30,42,20,0.45);}
     .match-card.is-past .team-name{color:var(--muted);}
-    .section.section-past .section-title{opacity:0.5;}
+    .match-card.is-past .match-date,.match-card.is-past .match-time,.match-card.is-past .match-venue{opacity:0.7;}
+    .section.section-past .section-title{opacity:0.4;}
+    .section.section-past .section-title::before{background:var(--muted);}
 
     /* TODAY PILL */
     .today-pill{background:var(--accent);color:var(--bg);font-family:'Barlow Condensed',sans-serif;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;letter-spacing:1.5px;text-transform:uppercase;vertical-align:middle;}
@@ -236,7 +239,7 @@
     .group-table tr.gt-my-team .gt-team-cell,.group-table tr.gt-my-team .gt-pts-num{color:var(--accent);}
 
     /* SCORE TOGGLE */
-    .score-toggle-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'Barlow',sans-serif;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;transition:var(--t-color);margin-left:auto;flex-shrink:0;}
+    .score-toggle-btn{background:none;border:1px solid var(--border);color:var(--muted);font-family:'Barlow',sans-serif;font-size:11px;padding:7px 10px;border-radius:6px;cursor:pointer;transition:var(--t-color);flex-shrink:0;white-space:nowrap;}
     .score-toggle-btn:hover{border-color:var(--accent);color:var(--accent);}
     .score-toggle-btn.scores-hidden{border-color:var(--accent);color:var(--accent);background:var(--accent-muted);}
 
@@ -300,6 +303,7 @@
     <div class="team-select-wrap">
       <select id="teamSelect"><option value="">All teams</option></select>
     </div>
+    <button id="scoreToggle" class="score-toggle-btn" onclick="toggleScores()">Hide scores</button>
     <button class="clear-btn" id="clearBtn" style="display:none">Clear</button>
   </div>
 </header>
@@ -339,7 +343,7 @@
   </div>
 
   <div id="tab-fixtures" class="tab-content active">
-    <div class="tz-label">Times in <span id="tzLabel">BST (UTC+1)</span> <button id="scoreToggle" class="score-toggle-btn" onclick="toggleScores()">Hide scores</button></div>
+    <div class="tz-label">Times in <span id="tzLabel">BST (UTC+1)</span></div>
     <div id="fixturesContainer"></div>
   </div>
 
