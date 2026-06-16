@@ -14,6 +14,9 @@ Built as a single-file static frontend with a Vercel serverless backend for scor
   - Vercel Hobby plan does not support frequent crons - cron-job.org is used instead
   - `update-scores.js` uses module-level `cachedScores`/`cachedStandings` variables to skip Blob `put()` calls when data hasn't changed — prevents burning the free tier's 2,000 Advanced Requests/month limit during pre-tournament when scores never change
   - Score extraction tries `score.fullTime` → `score.regularTime` → `score.halfTime` (in that order) — `regularTime` added as WC2026 API uses this field variant. Response includes `apiMatchCount` and `includedMatchCount` for debugging via cron-job.org logs.
+  - `update-scores.js` matches API fixtures to local `MATCH_IDS` by team name via `TEAM_NAME_MAP` — if football-data.org uses a different name than our local team name (e.g. FIFA's official "Cabo Verde" vs our local "Cape Verde"), the match silently fails to map and that game never gets a score written. Add the API's name as an alias in `TEAM_NAME_MAP` when this happens. If a concluded match isn't showing a score in the UI, check this mapping first.
+  - Any ACTIVE/FINISHED match that fails team-name matching is now logged to stdout as `Unmatched: "X" vs "Y" (STATUS)` — visible in cron-job.org logs for rapid diagnosis.
+  - 0-0 draws: the API can return `null` for all goal fields on a 0-0 FINISHED match. The null-goal guard therefore allows all `ACTIVE_STATUSES` (FINISHED/PAUSED/IN_PLAY/ET/PEN) through even when goals are null; `homeGoals ?? 0` then correctly writes 0.
 
 ## IMPORTANT: After every deployment
 
@@ -190,10 +193,12 @@ Match times are stored as UTC in the `MATCHES` array and converted for display v
 ## Fixture list - past match handling
 
 `renderFixtures()` computes `todayKey` (local date string) on each render:
-- Past date sections (key < todayKey) get class `section-past` and dimmed styling (opacity 0.5)
+- Past date sections (key < todayKey) get class `section-past` — their section title fades to opacity 0.4 and loses the lime accent bar (replaced by `var(--muted)` grey)
 - Today's section gets `id="fixtures-today"` and a lime "TODAY" pill in the header
 - Match cards get `is-past` class when their section is past OR when `liveResults[m.id]?.status === 'FT'` — but never on currently `LIVE` matches
+- `is-past` cards use `background: var(--bg)` (page colour) so they visually recede, plus a faded border, suppressed hover highlight, and muted meta text — four distinct signals that a match is concluded
 - On the first render of each Fixtures tab visit, `scrollIntoView({ behavior: 'instant', block: 'start' })` scrolls to `#fixtures-today`. `hasScrolledToToday` flag prevents re-scrolling on score-update re-renders; it resets when the user taps the Fixtures tab.
+- Matches within each date group are sorted by `parseKickoff(m.date, m.utc)` (actual UTC timestamp), **not** by `m.utc` string — sorting by the UTC string would place late-night matches (e.g. 23:00 UTC = 00:00 BST) at the end of the local-date group instead of the start.
 
 ## Group standings tables
 
@@ -208,7 +213,7 @@ The group card in the Groups tab shows:
 
 ## Score spoiler toggle
 
-A "Hide scores" button in the fixtures toolbar (`#scoreToggle`, class `.score-toggle-btn`) lets users suppress all score information.
+A "Hide scores" / "Show scores" button (`#scoreToggle`, class `.score-toggle-btn`) lives in the **sticky header** (between the team selector and the Clear button), so it is always accessible without scrolling. Do not move it back into the fixtures tab toolbar.
 
 When `hideScores` is true:
 - Match cards show "vs" instead of the score, with no FT/HT/LIVE badge
