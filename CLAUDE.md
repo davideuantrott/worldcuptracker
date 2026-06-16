@@ -15,6 +15,8 @@ Built as a single-file static frontend with a Vercel serverless backend for scor
   - `update-scores.js` uses module-level `cachedScores`/`cachedStandings` variables to skip Blob `put()` calls when data hasn't changed — prevents burning the free tier's 2,000 Advanced Requests/month limit during pre-tournament when scores never change
   - Score extraction tries `score.fullTime` → `score.regularTime` → `score.halfTime` (in that order) — `regularTime` added as WC2026 API uses this field variant. Response includes `apiMatchCount` and `includedMatchCount` for debugging via cron-job.org logs.
   - `update-scores.js` matches API fixtures to local `MATCH_IDS` by team name via `TEAM_NAME_MAP` — if football-data.org uses a different name than our local team name (e.g. FIFA's official "Cabo Verde" vs our local "Cape Verde"), the match silently fails to map and that game never gets a score written. Add the API's name as an alias in `TEAM_NAME_MAP` when this happens. If a concluded match isn't showing a score in the UI, check this mapping first.
+  - Any ACTIVE/FINISHED match that fails team-name matching is now logged to stdout as `Unmatched: "X" vs "Y" (STATUS)` — visible in cron-job.org logs for rapid diagnosis.
+  - 0-0 draws: the API can return `null` for all goal fields on a 0-0 FINISHED match. The null-goal guard therefore allows all `ACTIVE_STATUSES` (FINISHED/PAUSED/IN_PLAY/ET/PEN) through even when goals are null; `homeGoals ?? 0` then correctly writes 0.
 
 ## IMPORTANT: After every deployment
 

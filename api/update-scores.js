@@ -180,17 +180,27 @@ export default async function handler(req, res) {
       score: m.score,
     }));
 
+    const ACTIVE_STATUSES = new Set(['FINISHED', 'PAUSED', 'IN_PLAY', 'EXTRA_TIME', 'PENALTY']);
+
     (data.matches || []).forEach(m => {
       const local = findLocalMatch(m.homeTeam.name, m.awayTeam.name);
-      if (!local) return;
+      if (!local) {
+        // Log unmatched teams that are in an active/finished state — helps diagnose name mapping gaps
+        if (ACTIVE_STATUSES.has(m.status)) {
+          console.log(`Unmatched: "${m.homeTeam.name}" vs "${m.awayTeam.name}" (${m.status})`);
+        }
+        return;
+      }
 
       const score = m.score;
       // football-data.org v4 uses fullTime for most competitions; WC may use regularTime
       const homeGoals = score?.fullTime?.home ?? score?.regularTime?.home ?? score?.halfTime?.home ?? null;
       const awayGoals = score?.fullTime?.away ?? score?.regularTime?.away ?? score?.halfTime?.away ?? null;
 
-      const isInPlay = m.status === 'IN_PLAY';
-      if ((homeGoals === null || homeGoals === undefined) && !isInPlay) return;
+      // Skip only if goals are unknown AND match is not in an active/finished state.
+      // Do NOT skip FINISHED matches with null goals — 0-0 draws can come through with all
+      // score fields null on this API, and homeGoals ?? 0 handles them correctly below.
+      if ((homeGoals === null || homeGoals === undefined) && !ACTIVE_STATUSES.has(m.status)) return;
       const finalHome = homeGoals ?? 0;
       const finalAway = awayGoals ?? 0;
 
