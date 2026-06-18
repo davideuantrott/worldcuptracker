@@ -24,7 +24,7 @@ const TEAM_NAME_MAP = {
   'Sweden': ['Sweden'],
   'Tunisia': ['Tunisia'],
   'Spain': ['Spain'],
-  'Cape Verde': ['Cape Verde', 'Cabo Verde'],
+  'Cape Verde': ['Cape Verde', 'Cabo Verde', 'Cape Verde Islands'],
   'Saudi Arabia': ['Saudi Arabia'],
   'Uruguay': ['Uruguay'],
   'Belgium': ['Belgium'],
