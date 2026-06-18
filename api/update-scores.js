@@ -181,12 +181,14 @@ export default async function handler(req, res) {
     }));
 
     const ACTIVE_STATUSES = new Set(['FINISHED', 'PAUSED', 'IN_PLAY', 'EXTRA_TIME', 'PENALTY']);
+    const unmatched = [];
 
     (data.matches || []).forEach(m => {
       const local = findLocalMatch(m.homeTeam.name, m.awayTeam.name);
       if (!local) {
-        // Log unmatched teams that are in an active/finished state — helps diagnose name mapping gaps
         if (ACTIVE_STATUSES.has(m.status)) {
+          const entry = `${m.homeTeam.name} vs ${m.awayTeam.name} (${m.status})`;
+          unmatched.push(entry);
           console.log(`Unmatched: "${m.homeTeam.name}" vs "${m.awayTeam.name}" (${m.status})`);
         }
         return;
@@ -289,7 +291,7 @@ export default async function handler(req, res) {
     }
 
     console.log(`scores: ${Object.keys(scores).length} results (written: ${scoresWritten}), standings: ${standingsCount} entries (written: ${standingsWritten})`);
-    return res.status(200).json({ ok: true, apiMatchCount: data.matches?.length ?? 0, includedMatchCount: Object.keys(scores).length, scores, scoresWritten, standingsCount, standingsWritten, url: blobUrl, debugSample });
+    return res.status(200).json({ ok: true, apiMatchCount: data.matches?.length ?? 0, includedMatchCount: Object.keys(scores).length, scores, scoresWritten, standingsCount, standingsWritten, url: blobUrl, debugSample, unmatched });
 
   } catch (err) {
     console.error('Score update failed:', err);
