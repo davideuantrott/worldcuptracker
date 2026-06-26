@@ -7,6 +7,10 @@
     {
       "source": "/standings.json",
       "destination": "https://kdoazmegsbme4ynq.public.blob.vercel-storage.com/standings.json"
+    },
+    {
+      "source": "/knockout.json",
+      "destination": "https://kdoazmegsbme4ynq.public.blob.vercel-storage.com/knockout.json"
     }
   ],
   "headers": [
@@ -28,6 +32,13 @@
     },
     {
       "source": "/standings.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    },
+    {
+      "source": "/knockout.json",
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
         { "key": "Access-Control-Allow-Origin", "value": "*" }

@@ -49,6 +49,44 @@ const TEAM_NAME_MAP = {
   'Panama': ['Panama'],
 };
 
+// Maps each knockout match's scheduled UTC kickoff time to our internal ID.
+// Used to match the football-data.org API's knockout fixtures (which arrive with
+// real team names once groups are decided) without knowing the teams in advance.
+const KNOCKOUT_BY_DATE = {
+  '2026-06-28T19:00:00Z': 'r32-1',
+  '2026-06-29T17:00:00Z': 'r32-2',
+  '2026-06-29T20:30:00Z': 'r32-3',
+  '2026-06-30T01:00:00Z': 'r32-4',
+  '2026-06-30T17:00:00Z': 'r32-5',
+  '2026-06-30T21:00:00Z': 'r32-6',
+  '2026-07-01T01:00:00Z': 'r32-7',
+  '2026-07-01T16:00:00Z': 'r32-8',
+  '2026-07-01T20:00:00Z': 'r32-9',
+  '2026-07-02T00:00:00Z': 'r32-10',
+  '2026-07-02T19:00:00Z': 'r32-11',
+  '2026-07-02T23:00:00Z': 'r32-12',
+  '2026-07-03T02:00:00Z': 'r32-13',
+  '2026-07-03T18:00:00Z': 'r32-14',
+  '2026-07-03T22:00:00Z': 'r32-15',
+  '2026-07-04T01:30:00Z': 'r32-16',
+  '2026-07-04T17:00:00Z': 'r16-1',
+  '2026-07-04T21:00:00Z': 'r16-2',
+  '2026-07-05T20:00:00Z': 'r16-3',
+  '2026-07-05T23:00:00Z': 'r16-4',
+  '2026-07-06T19:00:00Z': 'r16-5',
+  '2026-07-06T21:00:00Z': 'r16-6',
+  '2026-07-07T16:00:00Z': 'r16-7',
+  '2026-07-07T20:00:00Z': 'r16-8',
+  '2026-07-09T20:00:00Z': 'qf-1',
+  '2026-07-10T19:00:00Z': 'qf-2',
+  '2026-07-11T21:00:00Z': 'qf-3',
+  '2026-07-12T00:00:00Z': 'qf-4',
+  '2026-07-14T19:00:00Z': 'sf-1',
+  '2026-07-15T19:00:00Z': 'sf-2',
+  '2026-07-18T21:00:00Z': '3p',
+  '2026-07-19T19:00:00Z': 'final',
+};
+
 const MATCH_IDS = [
   {id:'g1',home:'Mexico',away:'South Africa'},
   {id:'g2',home:'South Korea',away:'Czechia'},
@@ -128,6 +166,19 @@ function normalise(name) {
   return (name || '').toLowerCase().replace(/[^a-z]/g, '');
 }
 
+// Maps an API team name to our canonical local name. Returns null if the name
+// is absent or looks like a TBD placeholder (API returns null or empty for
+// unconfirmed knockout slots).
+function toLocalName(apiName) {
+  if (!apiName || !apiName.trim()) return null;
+  const n = apiName.trim();
+  if (/^tbd$/i.test(n)) return null;
+  const found = Object.keys(TEAM_NAME_MAP).find(k =>
+    TEAM_NAME_MAP[k].some(a => normalise(a) === normalise(n))
+  );
+  return found || n;
+}
+
 function matchesLocalTeam(apiName, localName) {
   const aliases = TEAM_NAME_MAP[localName] || [localName];
   return aliases.some(a => normalise(a) === normalise(apiName));
@@ -152,6 +203,7 @@ function findLocalMatch(apiHome, apiAway) {
 // so this avoids redundant Blob writes when data hasn't changed.
 let cachedScores = null;
 let cachedStandings = null;
+let cachedKnockout = null;
 
 export default async function handler(req, res) {
   const cronSecret = process.env.CRON_SECRET;
@@ -180,6 +232,7 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     const scores = {};
+    const knockout = {}; // { id: { home: 'France'|null, away: 'Germany'|null } }
 
     // Debug: capture the raw score object from the first few matches to diagnose field names
     const debugSample = (data.matches || []).slice(0, 5).map(m => ({
@@ -193,6 +246,35 @@ export default async function handler(req, res) {
     const unmatched = [];
 
     (data.matches || []).forEach(m => {
+      // --- Knockout match: match by scheduled UTC kickoff time ---
+      const knockoutId = KNOCKOUT_BY_DATE[m.utcDate];
+      if (knockoutId) {
+        const home = toLocalName(m.homeTeam?.name);
+        const away = toLocalName(m.awayTeam?.name);
+        // Always record team slots so frontend can show confirmed names (or null = TBD)
+        knockout[knockoutId] = { home, away };
+
+        // Also capture live/finished scores
+        const score = m.score;
+        const apiHomeGoals = score?.fullTime?.home ?? score?.regularTime?.home ?? score?.halfTime?.home ?? null;
+        const apiAwayGoals = score?.fullTime?.away ?? score?.regularTime?.away ?? score?.halfTime?.away ?? null;
+        if ((apiHomeGoals === null || apiHomeGoals === undefined) && !ACTIVE_STATUSES.has(m.status)) return;
+
+        let status;
+        switch (m.status) {
+          case 'FINISHED':         status = 'FT';   break;
+          case 'PAUSED':           status = 'HT';   break;
+          case 'IN_PLAY':          status = 'LIVE'; break;
+          case 'EXTRA_TIME':       status = 'ET';   break;
+          case 'PENALTY':          status = 'PEN';  break;
+          case 'PENALTY_SHOOTOUT': status = 'PEN';  break;
+          default: return;
+        }
+        scores[knockoutId] = { home: apiHomeGoals ?? 0, away: apiAwayGoals ?? 0, status, minute: m.minute || null };
+        return;
+      }
+
+      // --- Group stage match: match by team name ---
       const found = findLocalMatch(m.homeTeam.name, m.awayTeam.name);
       if (!found) {
         if (ACTIVE_STATUSES.has(m.status)) {
@@ -304,8 +386,24 @@ export default async function handler(req, res) {
       }
     }
 
-    console.log(`scores: ${Object.keys(scores).length} results (written: ${scoresWritten}), standings: ${standingsCount} entries (written: ${standingsWritten})`);
-    return res.status(200).json({ ok: true, apiMatchCount: data.matches?.length ?? 0, includedMatchCount: Object.keys(scores).length, scores, scoresWritten, standingsCount, standingsWritten, url: blobUrl, debugSample, unmatched });
+    let knockoutWritten = false;
+    if (Object.keys(knockout).length > 0) {
+      const newKnockoutStr = JSON.stringify(knockout);
+      if (newKnockoutStr !== cachedKnockout) {
+        await put('knockout.json', newKnockoutStr, {
+          access: 'public',
+          contentType: 'application/json',
+          addRandomSuffix: false,
+          allowOverwrite: true,
+          cacheControlMaxAge: 0,
+        });
+        cachedKnockout = newKnockoutStr;
+        knockoutWritten = true;
+      }
+    }
+
+    console.log(`scores: ${Object.keys(scores).length} results (written: ${scoresWritten}), standings: ${standingsCount} entries (written: ${standingsWritten}), knockout: ${Object.keys(knockout).length} slots (written: ${knockoutWritten})`);
+    return res.status(200).json({ ok: true, apiMatchCount: data.matches?.length ?? 0, includedMatchCount: Object.keys(scores).length, scores, scoresWritten, standingsCount, standingsWritten, knockout, knockoutWritten, url: blobUrl, debugSample, unmatched });
 
   } catch (err) {
     console.error('Score update failed:', err);

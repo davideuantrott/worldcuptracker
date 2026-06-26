@@ -12,11 +12,12 @@ Built as a single-file static frontend with a Vercel serverless backend for scor
 - **Blob storage:** https://kdoazmegsbme4ynq.public.blob.vercel-storage.com/scores.json
 - **Score updater cron:** cron-job.org (calls `/api/update-scores` every 5 minutes)
   - Vercel Hobby plan does not support frequent crons - cron-job.org is used instead
-  - `update-scores.js` uses module-level `cachedScores`/`cachedStandings` variables to skip Blob `put()` calls when data hasn't changed — prevents burning the free tier's 2,000 Advanced Requests/month limit during pre-tournament when scores never change
+  - `update-scores.js` uses module-level `cachedScores`/`cachedStandings`/`cachedKnockout` variables to skip Blob `put()` calls when data hasn't changed — prevents burning the free tier's 2,000 Advanced Requests/month limit during pre-tournament when scores never change
   - Score extraction tries `score.fullTime` → `score.regularTime` → `score.halfTime` (in that order) — `regularTime` added as WC2026 API uses this field variant. Response includes `apiMatchCount` and `includedMatchCount` for debugging via cron-job.org logs.
   - `update-scores.js` matches API fixtures to local `MATCH_IDS` by team name via `TEAM_NAME_MAP` — if football-data.org uses a different name than our local team name (e.g. the API uses "Cape Verde Islands" while our local name is "Cape Verde"), the match silently fails to map and that game never gets a score written. Add the API's name as an alias in `TEAM_NAME_MAP` when this happens. If a concluded match isn't showing a score in the UI, check this mapping first.
   - Any ACTIVE/FINISHED match that fails team-name matching is now logged to stdout as `Unmatched: "X" vs "Y" (STATUS)` — visible in cron-job.org logs for rapid diagnosis. The `unmatched` array is also returned in the JSON response body so it appears directly in cron-job.org execution history.
   - 0-0 draws: the API can return `null` for all goal fields on a 0-0 FINISHED match. The null-goal guard therefore allows all `ACTIVE_STATUSES` (FINISHED/PAUSED/IN_PLAY/ET/PEN) through even when goals are null; `homeGoals ?? 0` then correctly writes 0.
+  - **Knockout fixtures** are matched to `KNOCKOUT_BY_DATE` by the UTC kickoff timestamp (`m.utcDate`) rather than by team name — the teams aren't known until groups conclude. Once the API populates knockout fixtures with real team names, they flow through `toLocalName()` (same `TEAM_NAME_MAP` alias lookup) and are written to `knockout.json`. Knockout scores go into `scores.json` the same as group stage scores. If a knockout fixture time ever shifts (FIFA reschedule), update `KNOCKOUT_BY_DATE` to match.
 
 ## IMPORTANT: After every deployment
 
@@ -39,6 +40,7 @@ index.html                  Primary PWA - all UI, state, and calendar logic
 manifest.json               PWA manifest
 sw.js                       Service worker (network-first for scores, cache-first for assets)
 scores.json                 DELETED — do not recreate. A static file at this path blocks Vercel from applying the /scores.json → Blob rewrite. Live scores come from the Blob URL via the rewrite in vercel.json.
+knockout.json               DELETED — do not recreate. Same reason as scores.json. Knockout team slots written by backend to Blob, served via vercel.json rewrite.
 vercel.json                 Routing + header config (no crons - handled by cron-job.org)
 package.json                Node deps (type: module, @vercel/blob)
 node_modules/               Dependencies
@@ -144,14 +146,27 @@ knockout results update them.
 
 ```json
 {
-  "g22": { "home": 2, "away": 1, "status": "FT", "minute": null },
-  "g6":  { "home": 1, "away": 0, "status": "LIVE", "minute": 67 }
+  "g22":   { "home": 2, "away": 1, "status": "FT", "minute": null },
+  "g6":    { "home": 1, "away": 0, "status": "LIVE", "minute": 67 },
+  "r32-1": { "home": 1, "away": 0, "status": "FT", "minute": null }
 }
 ```
 
 Status values: `FT` | `HT` | `LIVE` | `ET` | `PEN`
 
-Only matches with known scores appear. Missing IDs = not yet played.
+Only matches with known scores appear. Missing IDs = not yet played. Includes knockout match IDs once those games kick off.
+
+### knockout.json (written by backend, read by PWA)
+
+```json
+{
+  "r32-1": { "home": "France", "away": "Germany" },
+  "r32-2": { "home": "Brazil", "away": null },
+  "r32-7": { "home": null,     "away": null }
+}
+```
+
+Written once the API populates knockout fixture slots with real team names. A `null` value means the slot is not yet confirmed (team still TBD). The frontend's `resolvedKnockoutMatch(m)` overlays these values onto the static `KNOCKOUT_ROUNDS` placeholders at render time — a non-null name replaces the placeholder, a null falls back to the original placeholder string (e.g. `"Group A winners"`). A match is treated as `confirmed: true` only when both home and away are non-null. If knockout.json doesn't exist yet (pre-R32), the frontend degrades gracefully — all placeholders remain.
 
 ## Key constants in index.html
 

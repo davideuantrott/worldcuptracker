@@ -1,4 +1,4 @@
-const CACHE = 'wc26-v10';
+const CACHE = 'wc26-v11';
 const STATIC = ['/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
@@ -19,7 +19,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
-  const isDynamic = url.pathname.includes('scores.json') || url.pathname.startsWith('/feeds/');
+  const isDynamic = url.pathname.includes('scores.json') || url.pathname.includes('standings.json') || url.pathname.includes('knockout.json') || url.pathname.startsWith('/feeds/');
 
   if (isDynamic) {
     e.respondWith(
