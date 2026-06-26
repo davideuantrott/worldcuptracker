@@ -139,8 +139,11 @@ Knockout matches are `r32-1` through `r32-16`, `r16-1` through `r16-8`,
 ### KNOCKOUT_ROUNDS array (index.html)
 
 Same shape as MATCHES but without `group`, with `confirmed: false`.
-`home` and `away` are placeholder strings like `'Group L winners'` until
-knockout results update them.
+`home` and `away` are static placeholder strings like `'Group L winners'` or
+`'Winner R32 M4'` — these are never mutated. At render time, `resolvedKnockoutMatch(m)`
+overlays confirmed team names from `knockoutTeams` (populated from `knockout.json`),
+returning a new object with real names where known and falling back to the placeholder
+where still TBD. `confirmed` is set to `true` dynamically when both slots are non-null.
 
 ### scores.json (written by backend, read by PWA)
 
@@ -207,13 +210,20 @@ Match times are stored as UTC in the `MATCHES` array and converted for display v
 
 ## Fixture list - past match handling
 
-`renderFixtures()` computes `todayKey` (local date string) on each render:
+`renderFixtures()` shows **both group stage and knockout fixtures** in a single chronological list, grouped by local date. Knockout matches appear below all group stage matches (their dates are later). The function computes `todayKey` on each render:
 - Past date sections (key < todayKey) get class `section-past` — their section title fades to opacity 0.4 and loses the lime accent bar (replaced by `var(--muted)` grey)
 - Today's section gets `id="fixtures-today"` and a lime "TODAY" pill in the header
 - Match cards get `is-past` class when their section is past OR when `liveResults[m.id]?.status === 'FT'` — but never on currently `LIVE` matches
 - `is-past` cards use `background: var(--bg)` (page colour) so they visually recede, plus a faded border, suppressed hover highlight, and muted meta text — four distinct signals that a match is concluded
 - On the first render of each Fixtures tab visit, `scrollIntoView({ behavior: 'instant', block: 'start' })` scrolls to `#fixtures-today`. `hasScrolledToToday` flag prevents re-scrolling on score-update re-renders; it resets when the user taps the Fixtures tab.
 - Matches within each date group are sorted by `parseKickoff(m.date, m.utc)` (actual UTC timestamp), **not** by `m.utc` string — sorting by the UTC string would place late-night matches (e.g. 23:00 UTC = 00:00 BST) at the end of the local-date group instead of the start.
+
+### Knockout matches in the Fixtures tab
+
+- **No filter**: all 31 knockout matches appended after group stage matches
+- **Team filter**: only knockout matches where the team is confirmed (`home`/`away` match) or possibly involved (`mightInvolve()` — group text / winner / loser / best 3rd). Cards show lime "Your team" or blue "Possible" badge accordingly
+- **Group filter**: knockout matches are excluded (they aren't group-specific)
+- Each knockout card shows a muted round badge (`badge-ko`) — "Round of 32", "Quarter-final", etc. — derived by `knockoutRoundLabel(id)` from the match ID, so context is clear without a section header
 
 ## Group standings tables
 
