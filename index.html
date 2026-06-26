@@ -552,8 +552,10 @@ const KNOCKOUT_ROUNDS = [
   ]},
 ];
 
-// All matches flat for calendar
-const ALL_MATCHES = [...MATCHES, ...KNOCKOUT_ROUNDS.flatMap(r => r.matches)];
+// All matches flat for calendar — uses resolved knockout team names when available
+function getAllMatches() {
+  return [...MATCHES, ...KNOCKOUT_ROUNDS.flatMap(r => r.matches.map(resolvedKnockoutMatch))];
+}
 
 // =============================================
 // STATE
@@ -562,6 +564,7 @@ let selectedTeam = '', selectedGroup = '';
 let tzOffset = 1;
 let liveResults = {};
 let apiStandings = {};
+let knockoutTeams = {}; // { 'r32-1': { home: 'France'|null, away: 'Germany'|null }, ... }
 let pollTimer = null, liveCount = 0;
 let hideScores = localStorage.getItem('wc26-hide-scores') === '1';
 let scoresInitialized = false;
@@ -684,7 +687,7 @@ function outlookWebUrl(m) {
 // CALENDAR MODAL
 // =============================================
 function openSingleMatchModal(matchId, btnEl) {
-  const m = ALL_MATCHES.find(x => x.id === matchId);
+  const m = getAllMatches().find(x => x.id === matchId);
   if (!m) return;
   originatingCalBtn = btnEl || null;
   modalContext = {type:'single', match:m};
@@ -700,7 +703,8 @@ function openSingleMatchModal(matchId, btnEl) {
 function openBulkCalModal() {
   if (selectedTeam) {
     const teamMatches = MATCHES.filter(m => m.home===selectedTeam||m.away===selectedTeam);
-    const knockoutMatches = KNOCKOUT_ROUNDS.flatMap(r=>r.matches).filter(m => {
+    const knockoutMatches = KNOCKOUT_ROUNDS.flatMap(r=>r.matches).map(resolvedKnockoutMatch).filter(m => {
+      if (m.home===selectedTeam||m.away===selectedTeam) return true;
       const grp = getTeamGroup(selectedTeam);
       if (!grp) return false;
       const d=(m.home+' '+m.away).toLowerCase();
@@ -746,7 +750,7 @@ function buildSingleOptions(m) {
       <span class="cal-option-arrow">›</span>
     </a>
     <div class="modal-divider">or download file</div>
-    <div class="cal-option" onclick="downloadIcs([ALL_MATCHES.find(x=>x.id==='${m.id}')],'wc2026-match.ics','WC26 Match');closeModal()">
+    <div class="cal-option" onclick="downloadIcs([getAllMatches().find(x=>x.id==='${m.id}')],'wc2026-match.ics','WC26 Match');closeModal()">
       <span class="cal-option-icon"><svg width="22" height="22" aria-hidden="true"><use href="#ico-apple"/></svg></span>
       <div class="cal-option-text">
         <div class="cal-option-name">Apple Calendar / Outlook desktop</div>
@@ -812,7 +816,8 @@ function buildGroupOptions(group, matches) {
 function downloadAllTeamMatches(team) {
   const grp = getTeamGroup(team);
   const confirmed = MATCHES.filter(m => m.home===team||m.away===team);
-  const possible = KNOCKOUT_ROUNDS.flatMap(r => r.matches).filter(m => {
+  const possible = KNOCKOUT_ROUNDS.flatMap(r => r.matches).map(resolvedKnockoutMatch).filter(m => {
+    if (m.home===team||m.away===team) return true;
     if (!grp) return false;
     const d=(m.home+' '+m.away).toLowerCase();
     return d.includes(`group ${grp.toLowerCase()}`)||d.includes('winner')||d.includes('loser')||d.includes('best 3rd');
@@ -820,7 +825,6 @@ function downloadAllTeamMatches(team) {
     ...m,
     home: m.home.includes('Group') ? `[If qualified] ${m.home}` : m.home,
     away: m.away.includes('Group') ? `[If qualified] ${m.away}` : m.away,
-    confirmed: false,
   }));
   const safeName = team.replace(/[^a-z0-9]/gi,'_').toLowerCase();
   downloadIcs([...confirmed, ...possible], `wc2026-${safeName}-all.ics`, `WC26: ${team}`);
@@ -1115,8 +1119,23 @@ function toggleScores() {
   btn.textContent = hideScores ? 'Show scores' : 'Hide scores';
   renderAll();
 }
+// Overlays confirmed team names from knockout.json onto a static KNOCKOUT_ROUNDS
+// match object. Falls back to the placeholder string when a slot is still TBD.
+function resolvedKnockoutMatch(m) {
+  const kt = knockoutTeams[m.id];
+  if (!kt) return m;
+  return {
+    ...m,
+    home: kt.home || m.home,
+    away: kt.away || m.away,
+    confirmed: !!(kt.home && kt.away),
+  };
+}
+
 function mightInvolve(m) {
   if (!selectedTeam) return false;
+  // Once both teams are confirmed, direct name check in renderKnockout handles everything
+  if (m.confirmed) return false;
   const g = getTeamGroup(selectedTeam);
   if (!g) return false;
   const d=(m.home+' '+m.away).toLowerCase();
@@ -1129,9 +1148,10 @@ function renderKnockout() {
   KNOCKOUT_ROUNDS.forEach(round => {
     html += `<div class="section"><div class="section-title">${round.round}</div>`;
     round.matches.forEach(m => {
+      const rm = resolvedKnockoutMatch(m);
       let t = 'normal';
-      if (selectedTeam) t=(m.home===selectedTeam||m.away===selectedTeam)?'confirmed':mightInvolve(m)?'possible':'normal';
-      html += matchCard(m, t, Math.min(cardIdx++, 18));
+      if (selectedTeam) t=(rm.home===selectedTeam||rm.away===selectedTeam)?'confirmed':mightInvolve(rm)?'possible':'normal';
+      html += matchCard(rm, t, Math.min(cardIdx++, 18));
     });
     html += '</div>';
   });
@@ -1172,9 +1192,10 @@ function updateBanner() {
 async function fetchScores() {
   const t = Date.now();
   try {
-    const [scoresRes, standingsRes] = await Promise.all([
+    const [scoresRes, standingsRes, knockoutRes] = await Promise.all([
       fetch(SCORES_URL + '?t=' + t),
       fetch('/standings.json?t=' + t).catch(() => null),
+      fetch('/knockout.json?t=' + t).catch(() => null),
     ]);
 
     let changed = false, liveNow = 0;
@@ -1202,6 +1223,14 @@ async function fetchScores() {
       const sdata = await standingsRes.json();
       if (JSON.stringify(sdata) !== JSON.stringify(apiStandings)) {
         apiStandings = sdata;
+        changed = true;
+      }
+    }
+
+    if (knockoutRes && knockoutRes.ok) {
+      const kdata = await knockoutRes.json();
+      if (JSON.stringify(kdata) !== JSON.stringify(knockoutTeams)) {
+        knockoutTeams = kdata;
         changed = true;
       }
     }
