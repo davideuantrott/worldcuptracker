@@ -134,9 +134,18 @@ function matchesLocalTeam(apiName, localName) {
 }
 
 function findLocalMatch(apiHome, apiAway) {
-  return MATCH_IDS.find(m =>
+  const direct = MATCH_IDS.find(m =>
     matchesLocalTeam(apiHome, m.home) && matchesLocalTeam(apiAway, m.away)
   );
+  if (direct) return { local: direct, swapped: false };
+
+  // football-data.org may list home/away in opposite order from our MATCH_IDS
+  const reversed = MATCH_IDS.find(m =>
+    matchesLocalTeam(apiAway, m.home) && matchesLocalTeam(apiHome, m.away)
+  );
+  if (reversed) return { local: reversed, swapped: true };
+
+  return null;
 }
 
 // Module-level cache: Vercel keeps functions warm between 5-min cron invocations,
@@ -180,12 +189,12 @@ export default async function handler(req, res) {
       score: m.score,
     }));
 
-    const ACTIVE_STATUSES = new Set(['FINISHED', 'PAUSED', 'IN_PLAY', 'EXTRA_TIME', 'PENALTY']);
+    const ACTIVE_STATUSES = new Set(['FINISHED', 'PAUSED', 'IN_PLAY', 'EXTRA_TIME', 'PENALTY', 'PENALTY_SHOOTOUT']);
     const unmatched = [];
 
     (data.matches || []).forEach(m => {
-      const local = findLocalMatch(m.homeTeam.name, m.awayTeam.name);
-      if (!local) {
+      const found = findLocalMatch(m.homeTeam.name, m.awayTeam.name);
+      if (!found) {
         if (ACTIVE_STATUSES.has(m.status)) {
           const entry = `${m.homeTeam.name} vs ${m.awayTeam.name} (${m.status})`;
           unmatched.push(entry);
@@ -193,26 +202,31 @@ export default async function handler(req, res) {
         }
         return;
       }
+      const { local, swapped } = found;
 
       const score = m.score;
       // football-data.org v4 uses fullTime for most competitions; WC may use regularTime
-      const homeGoals = score?.fullTime?.home ?? score?.regularTime?.home ?? score?.halfTime?.home ?? null;
-      const awayGoals = score?.fullTime?.away ?? score?.regularTime?.away ?? score?.halfTime?.away ?? null;
+      const apiHomeGoals = score?.fullTime?.home ?? score?.regularTime?.home ?? score?.halfTime?.home ?? null;
+      const apiAwayGoals = score?.fullTime?.away ?? score?.regularTime?.away ?? score?.halfTime?.away ?? null;
 
       // Skip only if goals are unknown AND match is not in an active/finished state.
       // Do NOT skip FINISHED matches with null goals — 0-0 draws can come through with all
-      // score fields null on this API, and homeGoals ?? 0 handles them correctly below.
-      if ((homeGoals === null || homeGoals === undefined) && !ACTIVE_STATUSES.has(m.status)) return;
-      const finalHome = homeGoals ?? 0;
-      const finalAway = awayGoals ?? 0;
+      // score fields null on this API, and ?? 0 handles them correctly below.
+      if ((apiHomeGoals === null || apiHomeGoals === undefined) && !ACTIVE_STATUSES.has(m.status)) return;
+
+      // If API lists teams in reversed order from our MATCH_IDS, swap goal assignment
+      // so scores.json home/away align with index.html's MATCHES ordering.
+      const finalHome = swapped ? (apiAwayGoals ?? 0) : (apiHomeGoals ?? 0);
+      const finalAway = swapped ? (apiHomeGoals ?? 0) : (apiAwayGoals ?? 0);
 
       let status;
       switch (m.status) {
-        case 'FINISHED':   status = 'FT';   break;
-        case 'PAUSED':     status = 'HT';   break;
-        case 'IN_PLAY':    status = 'LIVE'; break;
-        case 'EXTRA_TIME': status = 'ET';   break;
-        case 'PENALTY':    status = 'PEN';  break;
+        case 'FINISHED':         status = 'FT';   break;
+        case 'PAUSED':           status = 'HT';   break;
+        case 'IN_PLAY':          status = 'LIVE'; break;
+        case 'EXTRA_TIME':       status = 'ET';   break;
+        case 'PENALTY':          status = 'PEN';  break;
+        case 'PENALTY_SHOOTOUT': status = 'PEN';  break;
         default: return;
       }
 
