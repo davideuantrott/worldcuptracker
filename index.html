@@ -118,6 +118,7 @@
     .badge-group{background:var(--accent-muted);color:var(--accent);}
     .badge-confirmed{background:var(--accent-muted);color:var(--accent);}
     .badge-possible{background:rgba(91,156,246,0.12);color:var(--accent2);}
+    .badge-ko{background:rgba(138,148,120,0.15);color:var(--muted);}
     .badge-live{background:rgba(232,68,58,0.2);color:var(--live-color);animation:pulse 1.2s infinite;}
     .badge-ht{background:rgba(232,68,58,0.15);color:var(--live-color);}
     .badge-ft{background:rgba(80,200,120,0.12);color:#6ddfaa;}
@@ -904,6 +905,16 @@ function tvBadge(uk) {
   return '';
 }
 
+function knockoutRoundLabel(id) {
+  if (id === 'final') return 'Final';
+  if (id === '3p') return '3rd Place';
+  if (id.startsWith('sf')) return 'Semi-final';
+  if (id.startsWith('qf')) return 'Quarter-final';
+  if (id.startsWith('r16')) return 'Round of 16';
+  if (id.startsWith('r32')) return 'Round of 32';
+  return '';
+}
+
 // =============================================
 // MATCH CARD
 // =============================================
@@ -926,9 +937,11 @@ function matchCard(m, type='normal', idx=0, isPast=false) {
              : `<span class="match-badge badge-live" style="display:block;margin-top:2px">${res.minute?res.minute+"'":'LIVE'}</span>`;
     centerHtml = `<div class="score-center"><div class="score-nums">${res.home} - ${res.away}</div>${sb}</div>`;
   } else {
+    const koLabel = knockoutRoundLabel(m.id);
     const sb = type==='confirmed' ? '<span class="match-badge badge-confirmed" style="display:block;margin-top:2px">Your team</span>'
              : type==='possible'  ? '<span class="match-badge badge-possible" style="display:block;margin-top:2px">Possible</span>'
-             : m.group            ? `<span class="match-badge badge-group" style="display:block;margin-top:2px">Grp ${m.group}</span>` : '';
+             : m.group            ? `<span class="match-badge badge-group" style="display:block;margin-top:2px">Grp ${m.group}</span>`
+             : koLabel            ? `<span class="match-badge badge-ko" style="display:block;margin-top:2px">${koLabel}</span>` : '';
     const now = Date.now();
     const ko = parseKickoff(m.date, m.utc).getTime();
     const scoresEmpty = Object.keys(liveResults).length === 0;
@@ -966,6 +979,19 @@ function renderFixtures() {
   let ms = [...MATCHES];
   if (selectedGroup && !selectedTeam) ms = ms.filter(m => m.group===selectedGroup);
   if (selectedTeam) ms = ms.filter(m => m.home===selectedTeam||m.away===selectedTeam);
+
+  // Append knockout matches below group stage (not shown when filtering by group only)
+  if (!selectedGroup || selectedTeam) {
+    const allKnockout = KNOCKOUT_ROUNDS.flatMap(r => r.matches).map(resolvedKnockoutMatch);
+    if (selectedTeam) {
+      ms = [...ms, ...allKnockout.filter(m =>
+        m.home===selectedTeam || m.away===selectedTeam || mightInvolve(m)
+      )];
+    } else {
+      ms = [...ms, ...allKnockout];
+    }
+  }
+
   if (!ms.length) { c.innerHTML='<div class="empty-state"><svg class="empty-icon" width="36" height="36" viewBox="0 0 36 36" fill="none" aria-hidden="true"><circle cx="18" cy="18" r="15" stroke="var(--border)" stroke-width="1.5"/><circle cx="18" cy="18" r="5" fill="none" stroke="var(--muted)" stroke-width="1.5" opacity="0.5"/><line x1="18" y1="3" x2="18" y2="13" stroke="var(--muted)" stroke-width="1.5" opacity="0.5"/><line x1="18" y1="23" x2="18" y2="33" stroke="var(--muted)" stroke-width="1.5" opacity="0.5"/><line x1="3" y1="18" x2="13" y2="18" stroke="var(--muted)" stroke-width="1.5" opacity="0.5"/><line x1="23" y1="18" x2="33" y2="18" stroke="var(--muted)" stroke-width="1.5" opacity="0.5"/></svg><p>No fixtures</p></div>'; return; }
 
   const byDate = {};
@@ -977,7 +1003,7 @@ function renderFixtures() {
 
   const todayKey = localKey(new Date().toISOString().slice(0, 10), '00:00');
 
-  let html = selectedTeam ? '<div class="legend"><div class="legend-item"><div class="legend-dot dot-confirmed"></div> Your team</div></div>' : '';
+  let html = selectedTeam ? '<div class="legend"><div class="legend-item"><div class="legend-dot dot-confirmed"></div> Your team</div><div class="legend-item"><div class="legend-dot dot-possible"></div> Possible</div></div>' : '';
   let cardIdx = 0;
   Object.keys(byDate).sort().forEach(k => {
     const sectionIsPast = k < todayKey;
@@ -987,7 +1013,11 @@ function renderFixtures() {
     const todayPill = isToday ? ' <span class="today-pill">Today</span>' : '';
     html += `<div class="section${pastClass}"${todayAttr}><div class="section-title">${formatDate(k)}${todayPill}</div>`;
     byDate[k].sort((a,b)=>parseKickoff(a.date,a.utc)-parseKickoff(b.date,b.utc)).forEach(m => {
-      const t = selectedTeam&&(m.home===selectedTeam||m.away===selectedTeam)?'confirmed':'normal';
+      let t = 'normal';
+      if (selectedTeam) {
+        if (m.home===selectedTeam||m.away===selectedTeam) t='confirmed';
+        else if (!m.group && mightInvolve(m)) t='possible';
+      }
       const cardIsPast = sectionIsPast || liveResults[m.id]?.status === 'FT';
       html += matchCard(m, t, Math.min(cardIdx++, 18), cardIsPast);
     });
