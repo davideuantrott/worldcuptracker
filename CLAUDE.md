@@ -276,6 +276,14 @@ Columns: Pos, Flag+Team, P, W, D, L, GD, Pts.
 
 Tables are always shown, including pre-tournament when all values are 0 (unlike the compact group cards which only show a table when results exist). When `hideScores` is on and results exist, standings revert to team list in draw order (same as Groups tab). Source: `groupStandings(g)` with LIVE-match fallback to `calcGroupStandings()`.
 
+## UK TV listings status (as of 2026-06-29)
+
+The `uk` field on each match is manually maintained — BBC/ITV do not provide a machine-readable feed.
+
+- **Round of 32:** All 16 matches confirmed (updated 2026-06-29). Source: BBC/ITV official announcements via broadcastnow.co.uk.
+- **Round of 16 and beyond:** `TBA` — channels not yet announced. Exception: the Final is `BOTH` (both broadcasters, already confirmed at tournament start).
+- When BBC/ITV announce Round of 16 channels, update the `uk` field for `r16-1` through `r16-8` in `KNOCKOUT_ROUNDS`.
+
 ## Tone and conventions
 
 - No framework dependencies - keep it vanilla JS

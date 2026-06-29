@@ -1,4 +1,4 @@
-const CACHE = 'wc26-v8';
+const CACHE = 'wc26-v9';
 const STATIC = ['/index.html', '/manifest.json'];
 
 self.addEventListener('install', e => {
