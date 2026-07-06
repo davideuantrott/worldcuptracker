@@ -244,12 +244,17 @@ export default async function handler(req, res) {
 
     const ACTIVE_STATUSES = new Set(['FINISHED', 'PAUSED', 'IN_PLAY', 'EXTRA_TIME', 'PENALTY', 'PENALTY_SHOOTOUT']);
     const unmatched = [];
+    const unmatchedKnockoutDates = [];
 
     (data.matches || []).forEach(m => {
       // --- Knockout match: match by scheduled UTC kickoff time ---
       // Normalise to strip milliseconds (.000Z → Z) in case the API format varies
       const utcKey = (m.utcDate || '').replace(/\.\d+Z$/, 'Z');
       const knockoutId = KNOCKOUT_BY_DATE[utcKey];
+      if (!knockoutId && !(m.homeTeam?.name && m.awayTeam?.name && MATCH_IDS.find(x => matchesLocalTeam(m.homeTeam.name, x.home) || matchesLocalTeam(m.awayTeam.name, x.away)))) {
+        // API returned a timestamp we don't recognise as a knockout slot — log it for diagnosis
+        unmatchedKnockoutDates.push({ utcDate: m.utcDate, home: m.homeTeam?.name, away: m.awayTeam?.name, status: m.status });
+      }
       if (knockoutId) {
         const home = toLocalName(m.homeTeam?.name);
         const away = toLocalName(m.awayTeam?.name);
@@ -405,7 +410,7 @@ export default async function handler(req, res) {
     }
 
     console.log(`scores: ${Object.keys(scores).length} results (written: ${scoresWritten}), standings: ${standingsCount} entries (written: ${standingsWritten}), knockout: ${Object.keys(knockout).length} slots (written: ${knockoutWritten})`);
-    return res.status(200).json({ ok: true, apiMatchCount: data.matches?.length ?? 0, includedMatchCount: Object.keys(scores).length, scores, scoresWritten, standingsCount, standingsWritten, knockout, knockoutWritten, url: blobUrl, debugSample, unmatched });
+    return res.status(200).json({ ok: true, apiMatchCount: data.matches?.length ?? 0, includedMatchCount: Object.keys(scores).length, scores, scoresWritten, standingsCount, standingsWritten, knockout, knockoutWritten, url: blobUrl, debugSample, unmatched, unmatchedKnockoutDates });
 
   } catch (err) {
     console.error('Score update failed:', err);
