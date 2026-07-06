@@ -324,6 +324,7 @@ The `uk` field on each match is manually maintained — BBC/ITV do not provide a
 - **Vancouver** (PDT = UTC-7 in summer). An 8 pm local kickoff = **03:00 UTC**.
 - A mismatch between `KNOCKOUT_BY_DATE` and the API's `utcDate` silently prevents team names AND scores from being written for that fixture. If a knockout match is missing from `knockout.json`, check the timestamp first.
 - The `utcDate` is normalised in code (milliseconds stripped: `.000Z` → `Z`) before lookup to guard against API format inconsistencies. If a match is still missing after verifying the timestamp is correct, check the raw API response for that match's `utcDate` field.
+- **football-data.org stores the actual kick-off time, not the scheduled time.** If a match is delayed (e.g. weather), the API's `utcDate` shifts too. r16-4 (Mexico vs England) was delayed 1 hour by a thunderstorm — scheduled `2026-07-06T00:00:00Z`, actual `2026-07-06T01:00:00Z`. KNOCKOUT_BY_DATE must use the actual time.
 
 ## Tone and conventions
 
