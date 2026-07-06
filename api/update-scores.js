@@ -247,7 +247,9 @@ export default async function handler(req, res) {
 
     (data.matches || []).forEach(m => {
       // --- Knockout match: match by scheduled UTC kickoff time ---
-      const knockoutId = KNOCKOUT_BY_DATE[m.utcDate];
+      // Normalise to strip milliseconds (.000Z → Z) in case the API format varies
+      const utcKey = (m.utcDate || '').replace(/\.\d+Z$/, 'Z');
+      const knockoutId = KNOCKOUT_BY_DATE[utcKey];
       if (knockoutId) {
         const home = toLocalName(m.homeTeam?.name);
         const away = toLocalName(m.awayTeam?.name);

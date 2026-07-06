@@ -304,14 +304,17 @@ Columns: Pos, Flag+Team, P, W, D, L, GD, Pts.
 
 Tables are always shown, including pre-tournament when all values are 0 (unlike the compact group cards which only show a table when results exist). When `hideScores` is on and results exist, standings revert to team list in draw order (same as Groups tab). Source: `groupStandings(g)` with LIVE-match fallback to `calcGroupStandings()`.
 
-## UK TV listings status (as of 2026-07-04)
+## UK TV listings status (as of 2026-07-06)
 
 The `uk` field on each match is manually maintained — BBC/ITV do not provide a machine-readable feed.
 
 - **Round of 32:** All 16 matches confirmed. Source: BBC/ITV official announcements via broadcastnow.co.uk.
 - **Round of 16:** All 8 matches confirmed (updated 2026-07-04). ITV: r16-1 (Canada vs Morocco), r16-3 (Brazil vs Norway), r16-7 (Argentina vs Egypt), r16-8 (Switzerland vs Colombia). BBC: r16-2 (Paraguay vs France), r16-4 (Mexico vs England), r16-5 (Portugal vs Spain), r16-6 (USA vs Belgium).
-- **Quarter-finals and beyond:** `TBA` — channels not yet announced. Exception: the Final is `BOTH` (both broadcasters, already confirmed at tournament start).
-- When BBC/ITV announce Quarter-final channels, update the `uk` field for `qf-1` through `qf-4` in `KNOCKOUT_ROUNDS`.
+- **Quarter-finals:** qf-3 (Norway vs England, July 11) is confirmed **ITV**. qf-1, qf-2, qf-4 are still `TBA`. Source: live-footballontv.com, 101greatgoals.com.
+- **Semi-finals:** sf-1 (July 14, AT&T Stadium) confirmed **ITV**; sf-2 (July 15, Mercedes-Benz Stadium) confirmed **BBC**. Source: wheresthematch.com.
+- **Third Place Play-off:** confirmed **BBC**. Source: wheresthematch.com.
+- **Final:** `BOTH` (confirmed at tournament start).
+- When BBC/ITV announce QF channels for qf-1, qf-2, qf-4, update their `uk` fields in `KNOCKOUT_ROUNDS`.
 
 ## KNOCKOUT_BY_DATE timestamp notes
 
@@ -320,6 +323,7 @@ The `uk` field on each match is manually maintained — BBC/ITV do not provide a
 - **Guadalajara/Kansas City** (CDT = UTC-5 in summer). An 8 pm local kickoff = **01:00 UTC**.
 - **Vancouver** (PDT = UTC-7 in summer). An 8 pm local kickoff = **03:00 UTC**.
 - A mismatch between `KNOCKOUT_BY_DATE` and the API's `utcDate` silently prevents team names AND scores from being written for that fixture. If a knockout match is missing from `knockout.json`, check the timestamp first.
+- The `utcDate` is normalised in code (milliseconds stripped: `.000Z` → `Z`) before lookup to guard against API format inconsistencies. If a match is still missing after verifying the timestamp is correct, check the raw API response for that match's `utcDate` field.
 
 ## Tone and conventions
 
