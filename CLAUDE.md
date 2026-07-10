@@ -304,17 +304,16 @@ Columns: Pos, Flag+Team, P, W, D, L, GD, Pts.
 
 Tables are always shown, including pre-tournament when all values are 0 (unlike the compact group cards which only show a table when results exist). When `hideScores` is on and results exist, standings revert to team list in draw order (same as Groups tab). Source: `groupStandings(g)` with LIVE-match fallback to `calcGroupStandings()`.
 
-## UK TV listings status (as of 2026-07-06)
+## UK TV listings status (as of 2026-07-10)
 
 The `uk` field on each match is manually maintained — BBC/ITV do not provide a machine-readable feed.
 
 - **Round of 32:** All 16 matches confirmed. Source: BBC/ITV official announcements via broadcastnow.co.uk.
 - **Round of 16:** All 8 matches confirmed (updated 2026-07-04). ITV: r16-1 (Canada vs Morocco), r16-3 (Brazil vs Norway), r16-7 (Argentina vs Egypt), r16-8 (Switzerland vs Colombia). BBC: r16-2 (Paraguay vs France), r16-4 (Mexico vs England), r16-5 (Portugal vs Spain), r16-6 (USA vs Belgium).
-- **Quarter-finals:** qf-3 (Norway vs England, July 11) is confirmed **ITV**. qf-1, qf-2, qf-4 are still `TBA`. Source: live-footballontv.com, 101greatgoals.com.
+- **Quarter-finals:** All 4 matches confirmed (updated 2026-07-10). ITV: qf-1 (France vs Morocco, July 9, Foxborough), qf-3 (Norway vs England, July 11, Miami), qf-4 (Argentina vs Switzerland, July 12, Kansas City) - ITV holds three of the four QFs (first two picks). BBC: qf-2 (Spain vs Belgium, July 10, Inglewood). Source: live-footballontv.com, ESPN UK TV guide, satandpcguy.com.
 - **Semi-finals:** sf-1 (July 14, AT&T Stadium) confirmed **ITV**; sf-2 (July 15, Mercedes-Benz Stadium) confirmed **BBC**. Source: wheresthematch.com.
 - **Third Place Play-off:** confirmed **BBC**. Source: wheresthematch.com.
 - **Final:** `BOTH` (confirmed at tournament start).
-- When BBC/ITV announce QF channels for qf-1, qf-2, qf-4, update their `uk` fields in `KNOCKOUT_ROUNDS`.
 
 ## KNOCKOUT_BY_DATE timestamp notes
 
