@@ -1026,8 +1026,16 @@ function renderFixtures() {
   c.innerHTML = html;
 
   if (!hasScrolledToToday) {
-    document.getElementById('fixtures-today')?.scrollIntoView({ behavior: 'instant', block: 'start' });
-    hasScrolledToToday = true;
+    const todayEl = document.getElementById('fixtures-today');
+    if (todayEl) {
+      todayEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+      // Only lock the scroll once live data has loaded. The first data-driven
+      // re-render (scores, resolved knockout names, live bar) grows the content
+      // above today and would otherwise leave the view parked on an earlier
+      // date. Keep re-scrolling until that settled render, then lock so we
+      // don't yank the user back to today on later poll updates.
+      if (scoresInitialized) hasScrolledToToday = true;
+    }
   }
 }
 
