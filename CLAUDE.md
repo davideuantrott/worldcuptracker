@@ -1,23 +1,22 @@
-# WC26 - World Cup 2026 PWA
+# WC26 - World Cup 2026 Results Archive
 
 ## Project summary
 
-Ad-free, no-login Progressive Web App for tracking FIFA World Cup 2026 fixtures,
-live scores, UK TV listings, team/group filtering, and calendar export.
-Built as a single-file static frontend with a Vercel serverless backend for scores.
+Ad-free, no-login static results archive for FIFA World Cup 2026 fixtures,
+final scores, UK TV listings, team/group filtering, and calendar export.
+The tournament concluded on 2026-07-19 (Spain beat Argentina 1-0 in the
+final; England took third place). This is now a single-file static
+frontend with **no backend** - all results, standings, and knockout
+bracket data are frozen into `index.html` as constants.
 
 ## Deployment
 
 - **Live URL:** https://worldcuptracker.vercel.app
-- **Blob storage:** https://kdoazmegsbme4ynq.public.blob.vercel-storage.com/scores.json
-- **Score updater cron:** cron-job.org (calls `/api/update-scores` every 5 minutes)
-  - Vercel Hobby plan does not support frequent crons - cron-job.org is used instead
-  - `update-scores.js` uses module-level `cachedScores`/`cachedStandings`/`cachedKnockout` variables to skip Blob `put()` calls when data hasn't changed — prevents burning the free tier's 2,000 Advanced Requests/month limit during pre-tournament when scores never change
-  - Score extraction tries `score.fullTime` → `score.regularTime` → `score.halfTime` (in that order) — `regularTime` added as WC2026 API uses this field variant. Response includes `apiMatchCount` and `includedMatchCount` for debugging via cron-job.org logs.
-  - `update-scores.js` matches API fixtures to local `MATCH_IDS` by team name via `TEAM_NAME_MAP` — if football-data.org uses a different name than our local team name (e.g. the API uses "Cape Verde Islands" while our local name is "Cape Verde"), the match silently fails to map and that game never gets a score written. Add the API's name as an alias in `TEAM_NAME_MAP` when this happens. If a concluded match isn't showing a score in the UI, check this mapping first.
-  - Any ACTIVE/FINISHED match that fails team-name matching is now logged to stdout as `Unmatched: "X" vs "Y" (STATUS)` — visible in cron-job.org logs for rapid diagnosis. The `unmatched` array is also returned in the JSON response body so it appears directly in cron-job.org execution history.
-  - 0-0 draws: the API can return `null` for all goal fields on a 0-0 FINISHED match. The null-goal guard therefore allows all `ACTIVE_STATUSES` (FINISHED/PAUSED/IN_PLAY/ET/PEN) through even when goals are null; `homeGoals ?? 0` then correctly writes 0.
-  - **Knockout fixtures** are matched to `KNOCKOUT_BY_DATE` by the UTC kickoff timestamp (`m.utcDate`) rather than by team name — the teams aren't known until groups conclude. Once the API populates knockout fixtures with real team names, they flow through `toLocalName()` (same `TEAM_NAME_MAP` alias lookup) and are written to `knockout.json`. Knockout scores go into `scores.json` the same as group stage scores. If a knockout fixture time ever shifts (FIFA reschedule), update `KNOCKOUT_BY_DATE` to match.
+- Any static host works (Vercel, Netlify, GitHub Pages, plain file server). No environment variables, cron jobs, or serverless functions are required.
+- The cron-job.org job that used to call `/api/update-scores` every 5 minutes should be deleted/paused in the cron-job.org dashboard - it has no endpoint to call anymore and will just generate 404s.
+- The Vercel Blob store (`kdoazmegsbme4ynq.public.blob.vercel-storage.com`) is no longer read or written to. It can be deleted from the Vercel dashboard once you're sure nothing else depends on it.
+- Vercel env vars `FOOTBALL_DATA_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `CRON_SECRET` are unused and can be removed from the Vercel dashboard.
+- The project was temporarily on the Vercel Pro plan during the tournament (upgraded May 2026 for the Hobby Blob limit) - now that there's no Blob traffic at all, it should be safe to downgrade back to Hobby.
 
 ## IMPORTANT: After every deployment
 
@@ -25,35 +24,32 @@ Built as a single-file static frontend with a Vercel serverless backend for scor
 
 ## Stack
 
-- **Frontend:** Vanilla HTML/CSS/JS - no framework, no build step required
-- **Backend:** Vercel Serverless Functions (Node.js, ESM)
-- **Score storage:** Vercel Blob Storage - serves `scores.json` publicly
-- **Score source:** football-data.org API (free tier, WC competition code: `WC`)
-- **Hosting:** Vercel (static + serverless, Pro plan — upgraded May 2026 after hitting the Hobby Blob limit; plan to downgrade back to Hobby around June 1 once the May billing period resets, as tournament usage is estimated well within Hobby limits)
+- **Frontend:** Vanilla HTML/CSS/JS - no framework, no build step, no backend
+- **Hosting:** Static hosting only (currently Vercel)
 - **Fonts:** Google Fonts - Barlow Condensed + Barlow (loaded from CDN)
-- **PWA:** manifest.json + sw.js service worker for offline caching
+- **PWA:** manifest.json + sw.js service worker for offline caching (cache-first for everything - there's no dynamic data left to treat specially)
 
 ## File structure
 
 ```
-index.html                  Primary PWA - all UI, state, and calendar logic
+index.html                  The whole app - UI, final results data, and all logic
 manifest.json               PWA manifest
-sw.js                       Service worker (network-first for scores, cache-first for assets)
-scores.json                 DELETED — do not recreate. A static file at this path blocks Vercel from applying the /scores.json → Blob rewrite. Live scores come from the Blob URL via the rewrite in vercel.json.
-knockout.json               DELETED — do not recreate. Same reason as scores.json. Knockout team slots written by backend to Blob, served via vercel.json rewrite.
-vercel.json                 Routing + header config (no crons - handled by cron-job.org)
-package.json                Node deps (type: module, @vercel/blob)
-node_modules/               Dependencies
+sw.js                       Service worker (cache-first for all assets)
+vercel.json                 Static hosting security headers only (no rewrites/crons)
+CLAUDE.md                   This file
+README.md                   Deployment instructions
+design-system.json          Full design token spec
 icons/
   android/                  launchericon-{48,72,96,144,192,512}x{...}.png — PWA manifest icons
   ios/                      {size}.png — apple-touch-icon uses 180.png
   windows/                  Windows tile variants (not currently referenced in manifest)
-api/
-  update-scores.js          Serverless function - fetches API, writes Blob (GET to trigger)
-CLAUDE.md                   This file
-HANDOFF.md                  Detailed task list and gotchas
-README.md                   Deployment instructions
 ```
+
+There is no `api/` directory, no `package.json`, and no `node_modules` -
+the score-updater serverless function and its `@vercel/blob` dependency
+were removed once the tournament ended. `scores.json` and `knockout.json`
+were never checked into the repo (they were Blob-backed) and still
+shouldn't be - the data now lives inline in `index.html` instead.
 
 ## Design system
 
@@ -72,7 +68,7 @@ The full token spec lives in `design-system.json`.
 | `--accent2` | `#5b9cf6` | Blue - possible matches, secondary info |
 | `--text` | `#f0f2eb` | Body text |
 | `--muted` | `#8a9478` | Labels, metadata, placeholders |
-| `--live-color` | `#e8443a` | Live match indicator |
+| `--live-color` | `#e8443a` | Reserved for the "scores hidden" state of the results bar (no longer used for actual live matches) |
 | `--highlight` | `rgba(200,240,0,0.10)` | Selected team card background |
 | `--highlight-border` | `#c8f000` | Selected team card border |
 | `--possible-bg` | `rgba(91,156,246,0.08)` | Possible knockout match background |
@@ -99,11 +95,11 @@ Score numerals use `font-variant-numeric: tabular-nums lining-nums` and `font-fe
 |---|---|
 | `cardReveal` | Match cards and group cards on render — driven by `--i` inline style (`style="--i:N"`) |
 | `tabReveal` | Tab panel fade-in on `.tab-content.active` |
-| `liveGlow` | Live bar glow pulse when matches are live |
-| `liveBarPulse` | `.match-card.is-live::before` left-bar opacity pulse |
-| `shimmer` | `.score-skeleton` placeholder when scores not yet fetched |
-| `pulse` | Live dot and `badge-live` opacity pulse |
-| `slideUp` | Modal entrance |
+| `liveGlow` | Results bar glow pulse — only plays when `hideScores` is on (the "scores hidden" state); the default "tournament complete" state uses the `.is-final` variant with no animation |
+| `liveBarPulse` | `.match-card.is-live::before` left-bar opacity pulse (dead code now that no match can be `LIVE` - kept in case historical mid-match data is ever re-added) |
+| `shimmer` | `.score-skeleton` placeholder (dead code now that `scoresInitialized` is always `true` - kept for CSS completeness) |
+| `pulse` | Live dot opacity pulse - only used in the `hideScores` state now |
+| `slideUp` | Modal entrance (calendar modal and champion modal) |
 
 Card stagger index is capped at 18 to prevent long delays on large lists.
 
@@ -111,7 +107,7 @@ Card stagger index is capped at 18 to prevent long delays on large lists.
 
 Reusable icon symbols are defined in a hidden `<svg>` block at the top of `<body>`:
 `#ico-phone`, `#ico-cal-g`, `#ico-cal-o`, `#ico-apple`, `#ico-check`, `#ico-refresh`, `#ico-share`.
-Reference with `<svg><use href="#ico-X"/></svg>`. **No emoji anywhere in the UI** — use these SVG symbols or Barlow Condensed numeral badges instead.
+Reference with `<svg><use href="#ico-X"/></svg>`. **No emoji anywhere in the UI** — use these SVG symbols or Barlow Condensed numeral badges instead. (Team flag emoji in `FLAGS` are the one established exception - they represent data, not decoration.)
 
 ## Data model
 
@@ -141,43 +137,31 @@ Knockout matches are `r32-1` through `r32-16`, `r16-1` through `r16-8`,
 Same shape as MATCHES but without `group`, with `confirmed: false`.
 `home` and `away` are static placeholder strings like `'Group L winners'` or
 `'Winner R32 M4'` — these are never mutated. At render time, `resolvedKnockoutMatch(m)`
-overlays confirmed team names from `knockoutTeams` (populated from `knockout.json`),
-returning a new object with real names where known and falling back to the placeholder
-where still TBD. `confirmed` is set to `true` dynamically when both slots are non-null.
+overlays confirmed team names from `knockoutTeams` (now sourced from the
+`FINAL_KNOCKOUT_TEAMS` constant, not a fetched `knockout.json`), returning a new
+object with real names — every knockout slot is filled in since the bracket
+is fully resolved. `confirmed` is `true` for every knockout match now.
 
-### scores.json (written by backend, read by PWA)
+### Final results data (frozen constants in index.html)
 
-```json
-{
-  "g22":   { "home": 2, "away": 1, "status": "FT", "minute": null },
-  "g6":    { "home": 1, "away": 0, "status": "LIVE", "minute": 67 },
-  "r32-1": { "home": 1, "away": 0, "status": "FT", "minute": null }
-}
-```
+Three constants, inserted right after `KNOCKOUT_ROUNDS`, hold the complete
+final state of the tournament and are assigned directly to the app's state
+variables at load (`liveResults`, `apiStandings`, `knockoutTeams`):
 
-Status values: `FT` | `HT` | `LIVE` | `ET` | `PEN`
+- **`FINAL_SCORES`** — same shape as the old `scores.json`: `{ id: { home, away, status: 'FT', minute: null } }` for every one of the 72 group + 31 knockout matches.
+- **`FINAL_KNOCKOUT_TEAMS`** — same shape as the old `knockout.json`: `{ id: { home, away } }` team names for every knockout slot.
+- **`FINAL_STANDINGS`** — same shape as the old `standings.json`: `{ 'A': [{ team, pos, p, w, d, l, gf, ga, gd, pts }, ...] }` for all 12 groups.
 
-Only matches with known scores appear. Missing IDs = not yet played. Includes knockout match IDs once those games kick off.
-
-### knockout.json (written by backend, read by PWA)
-
-```json
-{
-  "r32-1": { "home": "France", "away": "Germany" },
-  "r32-2": { "home": "Brazil", "away": null },
-  "r32-7": { "home": null,     "away": null }
-}
-```
-
-Written once the API populates knockout fixture slots with real team names. A `null` value means the slot is not yet confirmed (team still TBD). The frontend's `resolvedKnockoutMatch(m)` overlays these values onto the static `KNOCKOUT_ROUNDS` placeholders at render time — a non-null name replaces the placeholder, a null falls back to the original placeholder string (e.g. `"Group A winners"`). A match is treated as `confirmed: true` only when both home and away are non-null. If knockout.json doesn't exist yet (pre-R32), the frontend degrades gracefully — all placeholders remain.
+If a scoring error is ever found in these constants, edit them directly -
+there is no backend to regenerate them from.
 
 ## Key constants in index.html
 
 ```js
-const SCORES_URL = '/scores.json';                        // Rewrites to Blob via vercel.json
-const BASE_URL = 'https://worldcuptracker.vercel.app';    // Live domain
-const POLL_INTERVAL = 60000;                              // Normal poll frequency (ms)
+const BASE_URL = 'https://worldcuptracker.vercel.app';    // Live domain, used for calendar subscribe links
 ```
+
+There is no `SCORES_URL` or `POLL_INTERVAL` anymore - nothing is fetched at runtime.
 
 ## Timezone display
 
@@ -185,116 +169,80 @@ Match times are stored as UTC in the `MATCHES` array and converted for display v
 
 `toLocal()` manually shifts the UTC timestamp by `tzOffset` hours (derived from `getTimezoneOffset()` at init), then reads the result using **`getUTCHours()`/`getUTCMinutes()`/`getUTCDate()`** — not the non-UTC equivalents. Using `getHours()` etc. would double-apply the browser's local offset (once via the manual shift, once via the JS date internals), showing times 1 hour too late in BST.
 
-## Environment variables (Vercel)
-
-| Variable | Description |
-|---|---|
-| `FOOTBALL_DATA_API_KEY` | football-data.org API key - set in Vercel dashboard |
-| `BLOB_READ_WRITE_TOKEN` | Auto-set by Vercel Blob |
-| `CRON_SECRET` | Shared secret to protect `/api/update-scores` - must also be set as `X-Cron-Secret` header in cron-job.org |
-
 ## Security
 
-- `/api/update-scores` checks the `X-Cron-Secret` request header against `CRON_SECRET` env var - requests without the correct secret are rejected with 401. The check is skipped if `CRON_SECRET` is not set (safe during initial deploy).
-- Score fields (`home`, `away`, `minute`) from `scores.json` are parsed as integers in `fetchScores()` before being stored in `liveResults`, preventing any injected HTML from reaching `innerHTML`.
-- `vercel.json` sets `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy` headers on all responses.
+- `vercel.json` sets `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, and `Referrer-Policy` headers on all responses. `connect-src` was removed from the CSP since the page no longer makes any `fetch()` calls.
+- Score fields in `FINAL_SCORES` are plain numbers already (not user input), so no runtime sanitization is needed before they reach the DOM.
 
-## Scores polling behaviour
+## Results bar (formerly the "live bar")
 
-- PWA polls `SCORES_URL` every `POLL_INTERVAL` (60s) normally
-- Drops to 30s automatically when live matches are detected
-- Cache-busted with `?t=timestamp` on every request
-- Silent failure if fetch fails - no UI error shown
-- Live bar shown at top when results are available or matches are live
-- `scoresInitialized` flag (set on first successful `/scores.json` response) controls whether the shimmer skeleton shows — skeleton only appears before the first fetch returns; after that, "vs" is shown for unscored matches rather than a perpetual loading box
+`#liveBar` / `updateLiveBar()` no longer polls anything - it just reflects
+the frozen final state:
+- Default: shows "Tournament complete - Spain are 2026 champions" with the `.is-final` styling (lime, no pulse animation).
+- When `hideScores` is on: shows "Scores available - hidden" with the original red/pulsing styling, same as before.
+
+## Champion popup
+
+`#championModal` shows the podium (1st Spain, 2nd Argentina, 3rd England)
+once per browser via the `wc26-champion-seen` localStorage flag, opened
+from `init()` if that flag isn't set. Structured like the calendar modal's
+option rows, using `badge-confirmed`/`badge-ko` pills for the "1st/2nd/3rd"
+labels instead of emoji (per the no-emoji-in-UI rule). Closeable via the
+Close button, backdrop click, or Escape - all three paths set the
+localStorage flag so it doesn't reappear.
 
 ## Fixture list - past match handling
 
 `renderFixtures()` shows **both group stage and knockout fixtures** in a single chronological list, grouped by local date. Knockout matches appear below all group stage matches (their dates are later). The function computes `todayKey` on each render:
 - Past date sections (key < todayKey) get class `section-past` — their section title fades to opacity 0.4 and loses the lime accent bar (replaced by `var(--muted)` grey)
-- Today's section gets `id="fixtures-today"` and a lime "TODAY" pill in the header
-- Match cards get `is-past` class when their section is past OR when `liveResults[m.id]?.status === 'FT'` — but never on currently `LIVE` matches
-- `is-past` cards use `background: var(--bg)` (page colour) so they visually recede, plus a faded border, suppressed hover highlight, and muted meta text — four distinct signals that a match is concluded
-- On the first render of each Fixtures tab visit, `scrollIntoView({ behavior: 'instant', block: 'start' })` scrolls to `#fixtures-today`. `hasScrolledToToday` flag prevents re-scrolling on score-update re-renders; it resets when the user taps the Fixtures tab.
+- Today's section gets `id="fixtures-today"` and a lime "TODAY" pill in the header — in practice this never matches anymore since every match date is in the past, so no section gets the pill and the scroll-to-today call is a no-op
+- Match cards get `is-past` class when their section is past OR when `liveResults[m.id]?.status === 'FT'` — since every match is now `FT` and every date is in the past, **every card renders in the faded "past" state**. This matches how the site already looked in production once the tournament finished (it was not changed when the site was converted to static), so it's expected, not a bug.
+- `is-past` cards use `background: var(--bg)` (page colour) so they visually recede, plus a faded border, suppressed hover highlight, and muted meta text
 - Matches within each date group are sorted by `parseKickoff(m.date, m.utc)` (actual UTC timestamp), **not** by `m.utc` string — sorting by the UTC string would place late-night matches (e.g. 23:00 UTC = 00:00 BST) at the end of the local-date group instead of the start.
 
 ### Knockout matches in the Fixtures tab
 
 - **No filter**: all 31 knockout matches appended after group stage matches
-- **Team filter**: only knockout matches where the team is confirmed (`home`/`away` match) or possibly involved (`mightInvolve()` — group text / winner / loser / best 3rd). Cards show lime "Your team" or blue "Possible" badge accordingly
+- **Team filter**: knockout matches where the team is confirmed (`home`/`away` match) show a lime "Your team" badge. Since every knockout slot is now filled with a real team name, the old "possible" (blue, not-yet-confirmed) badge path is effectively dead code — it's kept because it's cheap to keep and does no harm.
 - **Group filter**: knockout matches are excluded (they aren't group-specific)
-- Each knockout card shows a muted round badge (`badge-ko`) — "Round of 32", "Quarter-final", etc. — derived by `knockoutRoundLabel(id)` from the match ID, so context is clear without a section header
+- Each knockout card shows a muted round badge (`badge-ko`) — "Round of 32", "Quarter-final", etc. — derived by `knockoutRoundLabel(id)` from the match ID
 
 ## Group standings tables
 
-`calcGroupStandings(group)` computes live standings from `liveResults` on each render. Any match with a result in `liveResults` (including LIVE/HT mid-game scores) contributes to the table — so standings update in real-time during live matches.
+`calcGroupStandings(group)` computes standings from `liveResults` (now `FINAL_SCORES`) on each render — this still works and produces the same output as `FINAL_STANDINGS`, but `groupStandings(g)` prefers `apiStandings` (`FINAL_STANDINGS`) directly and only falls back to `calcGroupStandings()` when a match is `LIVE`/`HT`, which can never happen anymore. `calcGroupStandings()` is kept as-is rather than removed, since it's harmless dead-ish code and deleting it would be pure churn.
 
 Standings are sorted by: Pts desc → GD desc → GF desc → alphabetical.
 
-The group card in the Groups tab shows:
-- **No results yet**: team list in draw order (same as before)
-- **Results exist + scores visible**: compact standings table (Pos, flag+name, Pts, GD)
-- **Results exist + scores hidden**: team list in draw order (standings would reveal results)
-
 ## Score spoiler toggle
 
-A "Hide scores" / "Show scores" button (`#scoreToggle`, class `.score-toggle-btn`) lives in the **sticky header** (between the team selector and the Clear button), so it is always accessible without scrolling. Do not move it back into the fixtures tab toolbar.
+A "Hide scores" / "Show scores" button (`#scoreToggle`, class `.score-toggle-btn`) lives in the sticky header. Still present and functional post-tournament, for anyone browsing fixtures/venues without wanting to see who won.
 
 When `hideScores` is true:
-- Match cards show "vs" instead of the score, with no FT/HT/LIVE badge
-- No `is-live` red border on cards (would reveal a game is in progress)
-- Live bar shows "Scores available - hidden" instead of live match count
+- Match cards show "vs" instead of the score, with no FT badge
+- Results bar shows "Scores available - hidden" instead of the champion message
 - Group standings revert to team list (standings reveal results)
-- Shimmer skeleton is suppressed (would hint at live activity)
 
-State persisted in `localStorage` key `wc26-hide-scores`. Button starts with correct state on load (initialised in `init()`).
+State persisted in `localStorage` key `wc26-hide-scores`.
 
 ## PWA install prompt
 
-Two UI elements prompt users to install the PWA, both hidden when already running in standalone mode (`display-mode: standalone` or `navigator.standalone`):
-
-- **Banner** — slim bar between the live bar and tabs, shown on first visit. Dismissed by tapping ✕; dismissal persisted in `localStorage` key `wc26-install-dismissed`. Does not reappear after dismissal, but the footer button remains.
-- **Footer button** — "Add to home screen" button at the bottom of the scroll, always visible when installable.
-
-**Android / Chrome**: the browser fires `beforeinstallprompt`, which is captured and deferred. Tapping either UI element calls `deferredInstallPrompt.prompt()` to trigger the native install sheet. Both elements hide on `appinstalled`.
-
-**iOS Safari**: no `beforeinstallprompt` event. iOS is detected via UA string (`iPad|iPhone|iPod`). Both elements are shown on page load (respecting the dismissed flag for the banner). Tapping either element opens the existing calendar modal with 3-step share-sheet instructions.
+Two UI elements prompt users to install the PWA, both hidden when already running in standalone mode (`display-mode: standalone` or `navigator.standalone`): a dismissible banner and a footer button. Still fully functional - the PWA is a useful offline-capable results archive even post-tournament. See `index.html`'s `PWA INSTALL` section for the Android (`beforeinstallprompt`) vs iOS (manual instructions modal) split.
 
 ## Calendar features
 
-Three modes triggered from the UI:
+Kept even though every match is in the past - some users may still want an
+.ics record of when matches were played. Three modes triggered from the UI:
 
 1. **Single match** - opens modal with Google Calendar URL, Outlook.com URL,
    or .ics download for Apple Calendar / Outlook desktop
-2. **Team bulk** - confirmed group games only (.ics), OR all fixtures including
-   knockout placeholders labelled `[If qualified]`
+2. **Team bulk** - all of a team's group + knockout matches (all confirmed now)
 3. **Group bulk** - all group stage matches as .ics download
-4. **Subscribe feed** - webcal:// URL for Apple, Google Calendar subscribe URL,
-   Outlook instructions. Feed URL format: `BASE_URL/feeds/{slug}.ics`
-   (feed serving endpoint not yet implemented - see HANDOFF.md task 2)
+4. **Subscribe feed** - shows a webcal:// URL / Google Calendar subscribe link. This was never wired up to a real endpoint (`/feeds/*.ics` was planned but not implemented) and definitely won't be now - the option is effectively non-functional. Consider removing it if it causes confusion.
 
 ### ICS generation gotchas
 
 - **`fmtIcsDate` / `fmtIcsDateEnd` already include the trailing `Z`** (from `toISOString()`). Do NOT append `Z` again in `DTSTART`/`DTEND` lines — a double `ZZ` causes calendar apps to misparse the timestamp as local time, shifting the event 1 hour early for BST users.
 - **Event titles** use the format `Home vs. Away - Channel` (e.g. `Haiti vs. Scotland - BBC`). Channel suffix is omitted when `uk` is `TBA` or absent. All three calendar paths (ICS download, Google Calendar URL, Outlook URL) use the same format.
-
-## Group standings - API-sourced
-
-`apiStandings` state variable is populated from `/standings.json` (Blob-backed), fetched in parallel with scores on every poll cycle. The backend writes it from `data.standings[].table[]`, filtering for `type === 'TOTAL'`, extracting the group letter from the `group` field (e.g. `GROUP_A` → `A`).
-
-`standings.json` format:
-```json
-{
-  "A": [{ "team": "Mexico", "pos": 1, "p": 3, "w": 2, "d": 1, "l": 0, "gf": 5, "ga": 2, "gd": 3, "pts": 7 }],
-  "B": [...]
-}
-```
-
-### Fallback logic (`groupStandings(g)` helper)
-
-Uses `apiStandings[g]` when available. Falls back to `calcGroupStandings(g)` only when any match in that group has status `LIVE` or `HT` in `liveResults` (the API lags until FT). `calcGroupStandings()` remains in place as the live-only fallback.
-
-Both `renderGroups()` and `renderStandings()` call `groupStandings(g)` for consistency.
 
 ## Standings tab
 
@@ -302,33 +250,31 @@ A dedicated Standings tab (4th tab) shows full group tables for all 12 groups in
 
 Columns: Pos, Flag+Team, P, W, D, L, GD, Pts.
 
-Tables are always shown, including pre-tournament when all values are 0 (unlike the compact group cards which only show a table when results exist). When `hideScores` is on and results exist, standings revert to team list in draw order (same as Groups tab). Source: `groupStandings(g)` with LIVE-match fallback to `calcGroupStandings()`.
+Source: `groupStandings(g)`, which reads `FINAL_STANDINGS` directly (see "Group standings tables" above).
 
-## UK TV listings status (as of 2026-07-10)
+## UK TV listings (final, as of tournament close)
 
-The `uk` field on each match is manually maintained — BBC/ITV do not provide a machine-readable feed.
+The `uk` field on each match was manually maintained throughout the tournament - BBC/ITV don't provide a machine-readable feed. All rounds are now confirmed and frozen; there's nothing left to update here.
 
-- **Round of 32:** All 16 matches confirmed. Source: BBC/ITV official announcements via broadcastnow.co.uk.
-- **Round of 16:** All 8 matches confirmed (updated 2026-07-04). ITV: r16-1 (Canada vs Morocco), r16-3 (Brazil vs Norway), r16-7 (Argentina vs Egypt), r16-8 (Switzerland vs Colombia). BBC: r16-2 (Paraguay vs France), r16-4 (Mexico vs England), r16-5 (Portugal vs Spain), r16-6 (USA vs Belgium).
-- **Quarter-finals:** All 4 matches confirmed (updated 2026-07-10). ITV: qf-1 (France vs Morocco, July 9, Foxborough), qf-3 (Norway vs England, July 11, Miami), qf-4 (Argentina vs Switzerland, July 12, Kansas City) - ITV holds three of the four QFs (first two picks). BBC: qf-2 (Spain vs Belgium, July 10, Inglewood). Source: live-footballontv.com, ESPN UK TV guide, satandpcguy.com.
-- **Semi-finals:** sf-1 (July 14, AT&T Stadium) confirmed **ITV**; sf-2 (July 15, Mercedes-Benz Stadium) confirmed **BBC**. Source: wheresthematch.com.
-- **Third Place Play-off:** confirmed **BBC**. Source: wheresthematch.com.
-- **Final:** `BOTH` (confirmed at tournament start).
+- **Group stage:** all confirmed.
+- **Round of 32:** all 16 matches confirmed.
+- **Round of 16:** all 8 matches confirmed. ITV: r16-1 (Canada vs Morocco), r16-3 (Brazil vs Norway), r16-7 (Argentina vs Egypt), r16-8 (Switzerland vs Colombia). BBC: r16-2 (Paraguay vs France), r16-4 (Mexico vs England), r16-5 (Portugal vs Spain), r16-6 (USA vs Belgium).
+- **Quarter-finals:** all 4 confirmed. ITV: qf-1 (France vs Morocco), qf-3 (Norway vs England), qf-4 (Argentina vs Switzerland) - ITV held three of the four QFs. BBC: qf-2 (Spain vs Belgium).
+- **Semi-finals:** sf-1 (France vs Spain) ITV, sf-2 (England vs Argentina) BBC.
+- **Third Place Play-off:** BBC.
+- **Final:** `BOTH`.
 
-## KNOCKOUT_BY_DATE timestamp notes
+## Timezone gotchas (historical, kept for context on the frozen dates/times)
 
-`KNOCKOUT_BY_DATE` in `update-scores.js` maps UTC kickoff timestamps to match IDs for the backend to write team names/scores to `knockout.json`. Key timezone facts to bear in mind if times ever need adjusting:
 - **Mexico City** (Estadio Azteca) uses **CST = UTC-6** year-round (Mexico abolished DST in 2023). An 8 pm local kickoff = **02:00 UTC**.
 - **Guadalajara/Kansas City** (CDT = UTC-5 in summer). An 8 pm local kickoff = **01:00 UTC**.
 - **Vancouver** (PDT = UTC-7 in summer). An 8 pm local kickoff = **03:00 UTC**.
-- A mismatch between `KNOCKOUT_BY_DATE` and the API's `utcDate` silently prevents team names AND scores from being written for that fixture. If a knockout match is missing from `knockout.json`, check the timestamp first.
-- The `utcDate` is normalised in code (milliseconds stripped: `.000Z` → `Z`) before lookup to guard against API format inconsistencies. If a match is still missing after verifying the timestamp is correct, check the raw API response for that match's `utcDate` field.
-- **football-data.org stores the actual kick-off time, not the scheduled time.** If a match is delayed (e.g. weather), the API's `utcDate` shifts too. r16-4 (Mexico vs England) was delayed 1 hour by a thunderstorm — scheduled `2026-07-06T00:00:00Z`, actual `2026-07-06T01:00:00Z`. KNOCKOUT_BY_DATE must use the actual time.
+- **football-data.org stored the actual kick-off time, not the scheduled time**, back when scores were being polled from it. If a match was delayed (e.g. weather), its listed time reflects the delay. r16-4 (Mexico vs England) was delayed 1 hour by a thunderstorm — scheduled `2026-07-06T00:00:00Z`, actual (and what's stored in `KNOCKOUT_ROUNDS`) `2026-07-06T01:00:00Z`.
 
 ## Tone and conventions
 
 - No framework dependencies - keep it vanilla JS
-- No npm build step for the frontend - it's a single deployable HTML file
+- No npm build step, no backend - it's a single deployable HTML file plus a manifest and service worker
 - Error handling should be silent/graceful - this is a read-only info app
 - No user accounts, no data collection, no analytics
 - UK-first: times shown in user's local timezone, UK TV info prominent

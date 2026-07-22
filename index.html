@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0c0e0a" />
-  <meta name="description" content="FIFA World Cup 2026 - fixtures, results, groups and knockout tracker" />
-  <title>WC26 - World Cup 2026</title>
+  <meta name="description" content="FIFA World Cup 2026 - final results, fixtures, groups and knockout bracket" />
+  <title>WC26 - World Cup 2026 Results</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="/icons/ios/180.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -53,8 +53,11 @@
     @keyframes liveBarPulse{0%,100%{opacity:1}50%{opacity:0.4}}
     .live-bar{border-bottom:1px solid rgba(232,68,58,0.3);padding:6px 16px;display:none;background:rgba(232,68,58,0.08);}
     .live-bar.visible{display:block;animation:liveGlow 1.8s ease-in-out infinite;}
+    .live-bar.visible.is-final{animation:none;border-bottom-color:var(--accent-border);background:var(--accent-muted);}
     .live-bar-inner{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--live-color);}
+    .live-bar.is-final .live-bar-inner{color:var(--accent);}
     .live-dot{width:7px;height:7px;border-radius:50%;background:var(--live-color);animation:pulse 1.2s infinite;display:inline-block;}
+    .live-bar.is-final .live-dot{background:var(--accent);animation:none;}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
     @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
     .score-skeleton{width:52px;height:20px;border-radius:4px;background:linear-gradient(90deg,var(--surface2) 25%,rgba(200,240,0,0.06) 50%,var(--surface2) 75%);background-size:200% 100%;animation:shimmer 1.5s ease infinite;}
@@ -313,7 +316,6 @@
   <div class="live-bar-inner">
     <span class="live-dot"></span>
     <span id="liveBarText">Scores live</span>
-    <span style="margin-left:auto;color:var(--muted);font-size:10px" id="lastUpdated"></span>
   </div>
 </div>
 
@@ -359,7 +361,7 @@
 
   <div id="tab-knockout" class="tab-content">
     <div class="bracket-note">
-      <strong>First 48-team World Cup.</strong> 32 teams advance from the group stage - top 2 from each of the 12 groups, plus the 8 best third-placed teams. Select a team above to see their potential knockout path.
+      <strong>First 48-team World Cup.</strong> 32 teams advanced from the group stage - top 2 from each of the 12 groups, plus the 8 best third-placed teams. Select a team above to see their knockout path.
     </div>
     <div id="knockoutContainer"></div>
   </div>
@@ -381,21 +383,46 @@
   </div>
 </div>
 
+<!-- CHAMPION MODAL -->
+<div class="modal-overlay" id="championModal" onclick="closeChampionModalIfBg(event)">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">FIFA World Cup 2026 - Final Result</div>
+    <div class="modal-subtitle">Final: Spain 1-0 Argentina - MetLife Stadium, East Rutherford</div>
+    <div class="modal-options">
+      <div class="cal-option" style="cursor:default">
+        <span class="match-badge badge-confirmed" style="min-width:28px;text-align:center;flex-shrink:0">1st</span>
+        <div class="cal-option-text">
+          <div class="cal-option-name" id="championName"></div>
+          <div class="cal-option-desc">World Champions</div>
+        </div>
+      </div>
+      <div class="cal-option" style="cursor:default">
+        <span class="match-badge badge-ko" style="min-width:28px;text-align:center;flex-shrink:0">2nd</span>
+        <div class="cal-option-text">
+          <div class="cal-option-name" id="runnerUpName"></div>
+          <div class="cal-option-desc">Runners-up</div>
+        </div>
+      </div>
+      <div class="cal-option" style="cursor:default">
+        <span class="match-badge badge-ko" style="min-width:28px;text-align:center;flex-shrink:0">3rd</span>
+        <div class="cal-option-text">
+          <div class="cal-option-name" id="thirdPlaceName"></div>
+          <div class="cal-option-desc">Third place</div>
+        </div>
+      </div>
+    </div>
+    <button class="modal-close" onclick="closeChampionModal()">Close</button>
+  </div>
+</div>
+
 <script>
 // =============================================
 // CONFIGURATION
 // =============================================
 
-// Set this to the URL where you host your scores.json
-// The scores.json is updated by your backend cron job
-const SCORES_URL = '/scores.json';
-
 // Set this to your PWA's base URL (used to generate webcal:// links for iCal subscription)
 // e.g. 'https://wc26.yourdomain.com'
 const BASE_URL = 'https://worldcuptracker.vercel.app';
-
-// How often to poll scores.json (ms)
-const POLL_INTERVAL = 60000;
 
 // =============================================
 // DATA
@@ -559,16 +586,25 @@ function getAllMatches() {
 }
 
 // =============================================
+// FINAL RESULTS (frozen at tournament close - no longer fetched live)
+// =============================================
+const FINAL_SCORES = {"g1":{"home":2,"away":0,"status":"FT","minute":null},"g2":{"home":2,"away":1,"status":"FT","minute":null},"g3":{"home":1,"away":1,"status":"FT","minute":null},"g4":{"home":4,"away":1,"status":"FT","minute":null},"g5":{"home":1,"away":1,"status":"FT","minute":null},"g6":{"home":1,"away":1,"status":"FT","minute":null},"g7":{"home":0,"away":1,"status":"FT","minute":null},"g8":{"home":2,"away":0,"status":"FT","minute":null},"g9":{"home":7,"away":1,"status":"FT","minute":null},"g10":{"home":2,"away":2,"status":"FT","minute":null},"g11":{"home":1,"away":0,"status":"FT","minute":null},"g12":{"home":5,"away":1,"status":"FT","minute":null},"g13":{"home":0,"away":0,"status":"FT","minute":null},"g14":{"home":1,"away":1,"status":"FT","minute":null},"g15":{"home":1,"away":1,"status":"FT","minute":null},"g16":{"home":2,"away":2,"status":"FT","minute":null},"g17":{"home":3,"away":1,"status":"FT","minute":null},"g18":{"home":1,"away":4,"status":"FT","minute":null},"g19":{"home":3,"away":0,"status":"FT","minute":null},"g20":{"home":3,"away":1,"status":"FT","minute":null},"g21":{"home":1,"away":1,"status":"FT","minute":null},"g22":{"home":4,"away":2,"status":"FT","minute":null},"g23":{"home":1,"away":0,"status":"FT","minute":null},"g24":{"home":1,"away":3,"status":"FT","minute":null},"g25":{"home":1,"away":1,"status":"FT","minute":null},"g26":{"home":4,"away":1,"status":"FT","minute":null},"g27":{"home":6,"away":0,"status":"FT","minute":null},"g28":{"home":1,"away":0,"status":"FT","minute":null},"g29":{"home":2,"away":0,"status":"FT","minute":null},"g30":{"home":0,"away":1,"status":"FT","minute":null},"g31":{"home":3,"away":0,"status":"FT","minute":null},"g32":{"home":0,"away":1,"status":"FT","minute":null},"g33":{"home":5,"away":1,"status":"FT","minute":null},"g34":{"home":2,"away":1,"status":"FT","minute":null},"g35":{"home":0,"away":0,"status":"FT","minute":null},"g36":{"home":0,"away":4,"status":"FT","minute":null},"g37":{"home":4,"away":0,"status":"FT","minute":null},"g38":{"home":0,"away":0,"status":"FT","minute":null},"g39":{"home":2,"away":2,"status":"FT","minute":null},"g40":{"home":1,"away":3,"status":"FT","minute":null},"g41":{"home":2,"away":0,"status":"FT","minute":null},"g42":{"home":3,"away":0,"status":"FT","minute":null},"g43":{"home":3,"away":2,"status":"FT","minute":null},"g44":{"home":1,"away":2,"status":"FT","minute":null},"g45":{"home":5,"away":0,"status":"FT","minute":null},"g46":{"home":0,"away":0,"status":"FT","minute":null},"g47":{"home":0,"away":1,"status":"FT","minute":null},"g48":{"home":1,"away":0,"status":"FT","minute":null},"g49":{"home":2,"away":1,"status":"FT","minute":null},"g50":{"home":3,"away":1,"status":"FT","minute":null},"g52":{"home":4,"away":2,"status":"FT","minute":null},"g51":{"home":0,"away":3,"status":"FT","minute":null},"g53":{"home":0,"away":3,"status":"FT","minute":null},"g54":{"home":1,"away":0,"status":"FT","minute":null},"g55":{"home":2,"away":1,"status":"FT","minute":null},"g56":{"home":0,"away":2,"status":"FT","minute":null},"g58":{"home":1,"away":3,"status":"FT","minute":null},"g57":{"home":1,"away":1,"status":"FT","minute":null},"g59":{"home":3,"away":2,"status":"FT","minute":null},"g60":{"home":0,"away":0,"status":"FT","minute":null},"g61":{"home":1,"away":4,"status":"FT","minute":null},"g62":{"home":5,"away":0,"status":"FT","minute":null},"g63":{"home":0,"away":1,"status":"FT","minute":null},"g64":{"home":0,"away":0,"status":"FT","minute":null},"g66":{"home":1,"away":5,"status":"FT","minute":null},"g65":{"home":1,"away":1,"status":"FT","minute":null},"g67":{"home":0,"away":2,"status":"FT","minute":null},"g68":{"home":2,"away":1,"status":"FT","minute":null},"g69":{"home":0,"away":0,"status":"FT","minute":null},"g70":{"home":3,"away":1,"status":"FT","minute":null},"g72":{"home":1,"away":3,"status":"FT","minute":null},"g71":{"home":3,"away":3,"status":"FT","minute":null},"r32-1":{"home":0,"away":1,"status":"FT","minute":null},"r32-2":{"home":2,"away":1,"status":"FT","minute":null},"r32-3":{"home":4,"away":5,"status":"FT","minute":null},"r32-4":{"home":3,"away":4,"status":"FT","minute":null},"r32-5":{"home":1,"away":2,"status":"FT","minute":null},"r32-6":{"home":3,"away":0,"status":"FT","minute":null},"r32-7":{"home":2,"away":0,"status":"FT","minute":null},"r32-8":{"home":2,"away":1,"status":"FT","minute":null},"r32-9":{"home":3,"away":2,"status":"FT","minute":null},"r32-10":{"home":2,"away":0,"status":"FT","minute":null},"r32-11":{"home":3,"away":0,"status":"FT","minute":null},"r32-12":{"home":2,"away":1,"status":"FT","minute":null},"r32-13":{"home":2,"away":0,"status":"FT","minute":null},"r32-14":{"home":3,"away":5,"status":"FT","minute":null},"r32-15":{"home":3,"away":2,"status":"FT","minute":null},"r32-16":{"home":1,"away":0,"status":"FT","minute":null},"r16-1":{"home":0,"away":3,"status":"FT","minute":null},"r16-2":{"home":0,"away":1,"status":"FT","minute":null},"r16-3":{"home":1,"away":2,"status":"FT","minute":null},"r16-4":{"home":2,"away":3,"status":"FT","minute":null},"r16-5":{"home":0,"away":1,"status":"FT","minute":null},"r16-6":{"home":1,"away":4,"status":"FT","minute":null},"r16-7":{"home":3,"away":2,"status":"FT","minute":null},"r16-8":{"home":4,"away":3,"status":"FT","minute":null},"qf-1":{"home":2,"away":0,"status":"FT","minute":null},"qf-2":{"home":2,"away":1,"status":"FT","minute":null},"qf-3":{"home":1,"away":2,"status":"FT","minute":null},"qf-4":{"home":3,"away":1,"status":"FT","minute":null},"sf-1":{"home":0,"away":2,"status":"FT","minute":null},"sf-2":{"home":1,"away":2,"status":"FT","minute":null},"3p":{"home":4,"away":6,"status":"FT","minute":null},"final":{"home":1,"away":0,"status":"FT","minute":null}};
+
+const FINAL_KNOCKOUT_TEAMS = {"r32-1":{"home":"South Africa","away":"Canada"},"r32-2":{"home":"Brazil","away":"Japan"},"r32-3":{"home":"Germany","away":"Paraguay"},"r32-4":{"home":"Netherlands","away":"Morocco"},"r32-5":{"home":"Ivory Coast","away":"Norway"},"r32-6":{"home":"France","away":"Sweden"},"r32-7":{"home":"Mexico","away":"Ecuador"},"r32-8":{"home":"England","away":"DR Congo"},"r32-9":{"home":"Belgium","away":"Senegal"},"r32-10":{"home":"United States","away":"Bosnia & Herzegovina"},"r32-11":{"home":"Spain","away":"Austria"},"r32-12":{"home":"Portugal","away":"Croatia"},"r32-13":{"home":"Switzerland","away":"Algeria"},"r32-14":{"home":"Australia","away":"Egypt"},"r32-15":{"home":"Argentina","away":"Cape Verde"},"r32-16":{"home":"Colombia","away":"Ghana"},"r16-1":{"home":"Canada","away":"Morocco"},"r16-2":{"home":"Paraguay","away":"France"},"r16-3":{"home":"Brazil","away":"Norway"},"r16-4":{"home":"Mexico","away":"England"},"r16-5":{"home":"Portugal","away":"Spain"},"r16-6":{"home":"United States","away":"Belgium"},"r16-7":{"home":"Argentina","away":"Egypt"},"r16-8":{"home":"Switzerland","away":"Colombia"},"qf-1":{"home":"France","away":"Morocco"},"qf-2":{"home":"Spain","away":"Belgium"},"qf-3":{"home":"Norway","away":"England"},"qf-4":{"home":"Argentina","away":"Switzerland"},"sf-1":{"home":"France","away":"Spain"},"sf-2":{"home":"England","away":"Argentina"},"3p":{"home":"France","away":"England"},"final":{"home":"Spain","away":"Argentina"}};
+
+const FINAL_STANDINGS = {"A":[{"team":"Mexico","pos":1,"p":3,"w":3,"d":0,"l":0,"gf":6,"ga":0,"gd":6,"pts":9},{"team":"South Africa","pos":2,"p":3,"w":1,"d":1,"l":1,"gf":2,"ga":3,"gd":-1,"pts":4},{"team":"South Korea","pos":3,"p":3,"w":1,"d":0,"l":2,"gf":2,"ga":3,"gd":-1,"pts":3},{"team":"Czechia","pos":4,"p":3,"w":0,"d":1,"l":2,"gf":2,"ga":6,"gd":-4,"pts":1}],"B":[{"team":"Switzerland","pos":1,"p":3,"w":2,"d":1,"l":0,"gf":7,"ga":3,"gd":4,"pts":7},{"team":"Canada","pos":2,"p":3,"w":1,"d":1,"l":1,"gf":8,"ga":3,"gd":5,"pts":4},{"team":"Bosnia & Herzegovina","pos":3,"p":3,"w":1,"d":1,"l":1,"gf":5,"ga":6,"gd":-1,"pts":4},{"team":"Qatar","pos":4,"p":3,"w":0,"d":1,"l":2,"gf":2,"ga":10,"gd":-8,"pts":1}],"C":[{"team":"Brazil","pos":1,"p":3,"w":2,"d":1,"l":0,"gf":7,"ga":1,"gd":6,"pts":7},{"team":"Morocco","pos":2,"p":3,"w":2,"d":1,"l":0,"gf":6,"ga":3,"gd":3,"pts":7},{"team":"Scotland","pos":3,"p":3,"w":1,"d":0,"l":2,"gf":1,"ga":4,"gd":-3,"pts":3},{"team":"Haiti","pos":4,"p":3,"w":0,"d":0,"l":3,"gf":2,"ga":8,"gd":-6,"pts":0}],"D":[{"team":"United States","pos":1,"p":3,"w":2,"d":0,"l":1,"gf":8,"ga":4,"gd":4,"pts":6},{"team":"Australia","pos":2,"p":3,"w":1,"d":1,"l":1,"gf":2,"ga":2,"gd":0,"pts":4},{"team":"Paraguay","pos":3,"p":3,"w":1,"d":1,"l":1,"gf":2,"ga":4,"gd":-2,"pts":4},{"team":"Türkiye","pos":4,"p":3,"w":1,"d":0,"l":2,"gf":3,"ga":5,"gd":-2,"pts":3}],"E":[{"team":"Germany","pos":1,"p":3,"w":2,"d":0,"l":1,"gf":10,"ga":4,"gd":6,"pts":6},{"team":"Ivory Coast","pos":2,"p":3,"w":2,"d":0,"l":1,"gf":4,"ga":2,"gd":2,"pts":6},{"team":"Ecuador","pos":3,"p":3,"w":1,"d":1,"l":1,"gf":2,"ga":2,"gd":0,"pts":4},{"team":"Curaçao","pos":4,"p":3,"w":0,"d":1,"l":2,"gf":1,"ga":9,"gd":-8,"pts":1}],"F":[{"team":"Netherlands","pos":1,"p":3,"w":2,"d":1,"l":0,"gf":10,"ga":4,"gd":6,"pts":7},{"team":"Japan","pos":2,"p":3,"w":1,"d":2,"l":0,"gf":7,"ga":3,"gd":4,"pts":5},{"team":"Sweden","pos":3,"p":3,"w":1,"d":1,"l":1,"gf":7,"ga":7,"gd":0,"pts":4},{"team":"Tunisia","pos":4,"p":3,"w":0,"d":0,"l":3,"gf":2,"ga":12,"gd":-10,"pts":0}],"G":[{"team":"Belgium","pos":1,"p":3,"w":1,"d":2,"l":0,"gf":6,"ga":2,"gd":4,"pts":5},{"team":"Egypt","pos":2,"p":3,"w":1,"d":2,"l":0,"gf":5,"ga":3,"gd":2,"pts":5},{"team":"Iran","pos":3,"p":3,"w":0,"d":3,"l":0,"gf":3,"ga":3,"gd":0,"pts":3},{"team":"New Zealand","pos":4,"p":3,"w":0,"d":1,"l":2,"gf":4,"ga":10,"gd":-6,"pts":1}],"H":[{"team":"Spain","pos":1,"p":3,"w":2,"d":1,"l":0,"gf":5,"ga":0,"gd":5,"pts":7},{"team":"Cape Verde","pos":2,"p":3,"w":0,"d":3,"l":0,"gf":2,"ga":2,"gd":0,"pts":3},{"team":"Uruguay","pos":3,"p":3,"w":0,"d":2,"l":1,"gf":3,"ga":4,"gd":-1,"pts":2},{"team":"Saudi Arabia","pos":4,"p":3,"w":0,"d":2,"l":1,"gf":1,"ga":5,"gd":-4,"pts":2}],"I":[{"team":"France","pos":1,"p":3,"w":3,"d":0,"l":0,"gf":10,"ga":2,"gd":8,"pts":9},{"team":"Norway","pos":2,"p":3,"w":2,"d":0,"l":1,"gf":8,"ga":7,"gd":1,"pts":6},{"team":"Senegal","pos":3,"p":3,"w":1,"d":0,"l":2,"gf":8,"ga":6,"gd":2,"pts":3},{"team":"Iraq","pos":4,"p":3,"w":0,"d":0,"l":3,"gf":1,"ga":12,"gd":-11,"pts":0}],"J":[{"team":"Argentina","pos":1,"p":3,"w":3,"d":0,"l":0,"gf":8,"ga":1,"gd":7,"pts":9},{"team":"Austria","pos":2,"p":3,"w":1,"d":1,"l":1,"gf":6,"ga":6,"gd":0,"pts":4},{"team":"Algeria","pos":3,"p":3,"w":1,"d":1,"l":1,"gf":5,"ga":7,"gd":-2,"pts":4},{"team":"Jordan","pos":4,"p":3,"w":0,"d":0,"l":3,"gf":3,"ga":8,"gd":-5,"pts":0}],"K":[{"team":"Colombia","pos":1,"p":3,"w":2,"d":1,"l":0,"gf":4,"ga":1,"gd":3,"pts":7},{"team":"Portugal","pos":2,"p":3,"w":1,"d":2,"l":0,"gf":6,"ga":1,"gd":5,"pts":5},{"team":"DR Congo","pos":3,"p":3,"w":1,"d":1,"l":1,"gf":4,"ga":3,"gd":1,"pts":4},{"team":"Uzbekistan","pos":4,"p":3,"w":0,"d":0,"l":3,"gf":2,"ga":11,"gd":-9,"pts":0}],"L":[{"team":"England","pos":1,"p":3,"w":2,"d":1,"l":0,"gf":6,"ga":2,"gd":4,"pts":7},{"team":"Croatia","pos":2,"p":3,"w":2,"d":0,"l":1,"gf":5,"ga":5,"gd":0,"pts":6},{"team":"Ghana","pos":3,"p":3,"w":1,"d":1,"l":1,"gf":2,"ga":2,"gd":0,"pts":4},{"team":"Panama","pos":4,"p":3,"w":0,"d":0,"l":3,"gf":0,"ga":4,"gd":-4,"pts":0}]};
+
+// =============================================
 // STATE
 // =============================================
 let selectedTeam = '', selectedGroup = '';
 let tzOffset = 1;
-let liveResults = {};
-let apiStandings = {};
-let knockoutTeams = {}; // { 'r32-1': { home: 'France'|null, away: 'Germany'|null }, ... }
-let pollTimer = null, liveCount = 0;
+let liveResults = FINAL_SCORES;
+let apiStandings = FINAL_STANDINGS;
+let knockoutTeams = FINAL_KNOCKOUT_TEAMS; // { 'r32-1': { home: 'France'|null, away: 'Germany'|null }, ... }
+let liveCount = 0;
 let hideScores = localStorage.getItem('wc26-hide-scores') === '1';
-let scoresInitialized = false;
+let scoresInitialized = true;
 let hasScrolledToToday = false;
 let modalContext = null; // { type: 'single'|'team'|'group', match?, team?, group? }
 let originatingCalBtn = null;
@@ -892,6 +928,25 @@ function closeModal() {
 }
 function closeModalIfBg(e) {
   if (e.target === document.getElementById('calModal')) closeModal();
+}
+
+// =============================================
+// CHAMPION MODAL (shown once on first visit after the tournament ends)
+// =============================================
+function openChampionModal() {
+  document.getElementById('championName').textContent = `${FLAGS['Spain']||''} Spain`;
+  document.getElementById('runnerUpName').textContent = `${FLAGS['Argentina']||''} Argentina`;
+  document.getElementById('thirdPlaceName').textContent = `${FLAGS['England']||''} England`;
+  document.getElementById('championModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeChampionModal() {
+  document.getElementById('championModal').classList.remove('open');
+  document.body.style.overflow = '';
+  localStorage.setItem('wc26-champion-seen', '1');
+}
+function closeChampionModalIfBg(e) {
+  if (e.target === document.getElementById('championModal')) closeChampionModal();
 }
 
 // =============================================
@@ -1225,80 +1280,19 @@ function updateBanner() {
 }
 
 // =============================================
-// SCORES (fetch from your backend /scores.json)
+// RESULTS BAR (tournament is over - all data is frozen, nothing to poll)
 // =============================================
-async function fetchScores() {
-  const t = Date.now();
-  try {
-    const [scoresRes, standingsRes, knockoutRes] = await Promise.all([
-      fetch(SCORES_URL + '?t=' + t),
-      fetch('/standings.json?t=' + t).catch(() => null),
-      fetch('/knockout.json?t=' + t).catch(() => null),
-    ]);
-
-    let changed = false, liveNow = 0;
-
-    if (scoresRes.ok) {
-      scoresInitialized = true;
-      const data = await scoresRes.json();
-      Object.entries(data).forEach(([id, result]) => {
-        const prev = liveResults[id];
-        if (!prev || prev.home!==result.home || prev.away!==result.away || prev.status!==result.status) changed = true;
-        liveResults[id] = {
-          home: parseInt(result.home, 10),
-          away: parseInt(result.away, 10),
-          status: result.status,
-          minute: result.minute != null ? parseInt(result.minute, 10) : null,
-        };
-        if (result.status==='LIVE'||result.status==='HT') liveNow++;
-      });
-      liveCount = liveNow;
-      updateLiveBar();
-      document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    }
-
-    if (standingsRes && standingsRes.ok) {
-      const sdata = await standingsRes.json();
-      if (JSON.stringify(sdata) !== JSON.stringify(apiStandings)) {
-        apiStandings = sdata;
-        changed = true;
-      }
-    }
-
-    if (knockoutRes && knockoutRes.ok) {
-      const kdata = await knockoutRes.json();
-      if (JSON.stringify(kdata) !== JSON.stringify(knockoutTeams)) {
-        knockoutTeams = kdata;
-        changed = true;
-      }
-    }
-
-    if (changed) renderAll();
-  } catch(e) { /* silently fail */ }
-}
-
 function updateLiveBar() {
   const bar = document.getElementById('liveBar');
   const txt = document.getElementById('liveBarText');
-  const hasAnyResults = Object.keys(liveResults).length > 0;
-  if (hideScores && hasAnyResults) {
-    bar.classList.add('visible');
+  bar.classList.add('visible');
+  if (hideScores) {
+    bar.classList.remove('is-final');
     txt.textContent = 'Scores available - hidden';
-  } else if (liveCount > 0) {
-    bar.classList.add('visible');
-    txt.textContent = `${liveCount} match${liveCount>1?'es':''} live - scores updating`;
-  } else if (hasAnyResults) {
-    bar.classList.add('visible');
-    txt.textContent = 'Results live';
   } else {
-    bar.classList.remove('visible');
+    bar.classList.add('is-final');
+    txt.textContent = 'Tournament complete - Spain are 2026 champions';
   }
-}
-
-function startPolling() {
-  if (pollTimer) clearInterval(pollTimer);
-  fetchScores();
-  pollTimer = setInterval(fetchScores, liveCount > 0 ? 30000 : POLL_INTERVAL);
 }
 
 // =============================================
@@ -1403,7 +1397,7 @@ async function triggerInstall() {
   sel.addEventListener('change', e => { selectedTeam=e.target.value; selectedGroup=''; renderAll(); });
   document.getElementById('clearBtn').addEventListener('click', () => { selectedTeam=''; selectedGroup=''; sel.value=''; renderAll(); });
   document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
-  document.addEventListener('keydown', e => { if (e.key==='Escape') closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key==='Escape') { closeModal(); closeChampionModal(); } });
 
   const scoreToggleBtn = document.getElementById('scoreToggle');
   if (hideScores) {
@@ -1412,7 +1406,7 @@ async function triggerInstall() {
   }
 
   renderAll();
-  startPolling();
+  updateLiveBar();
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
 
@@ -1422,6 +1416,8 @@ async function triggerInstall() {
       document.getElementById('installBanner').style.display = 'block';
     }
   }
+
+  if (!localStorage.getItem('wc26-champion-seen')) openChampionModal();
 })();
 </script>
 </body>
