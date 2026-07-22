@@ -13,10 +13,10 @@ bracket data are frozen into `index.html` as constants.
 
 - **Live URL:** https://worldcuptracker.vercel.app
 - Any static host works (Vercel, Netlify, GitHub Pages, plain file server). No environment variables, cron jobs, or serverless functions are required.
-- The cron-job.org job that used to call `/api/update-scores` every 5 minutes should be deleted/paused in the cron-job.org dashboard - it has no endpoint to call anymore and will just generate 404s.
-- The Vercel Blob store (`kdoazmegsbme4ynq.public.blob.vercel-storage.com`) is no longer read or written to. It can be deleted from the Vercel dashboard once you're sure nothing else depends on it.
-- Vercel env vars `FOOTBALL_DATA_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `CRON_SECRET` are unused and can be removed from the Vercel dashboard.
-- The project was temporarily on the Vercel Pro plan during the tournament (upgraded May 2026 for the Hobby Blob limit) - now that there's no Blob traffic at all, it should be safe to downgrade back to Hobby.
+- The cron-job.org job that used to call `/api/update-scores` every 5 minutes has no endpoint to call anymore (the function is deleted) and will just generate 404s - pause/delete it in the cron-job.org dashboard whenever convenient. Even if left running, it cannot write to Blob storage since the function it was calling no longer exists.
+- **The Vercel Blob store (`kdoazmegsbme4ynq.public.blob.vercel-storage.com`) is deliberately being kept, not deleted**, even though nothing reads or writes to it anymore. Decision made 2026-07-22: there's a possible follow-up project - the same tracker concept for the 2028 Euros or the 2027 Women's World Cup - and the old `scores.json`/`standings.json`/`knockout.json` blobs are useful as a live reference for how the backend/data shape worked, without needing to dig through git history. Cost/risk of keeping it is negligible (a few KB, no writes, no sensitive data). Same reasoning applies to the unused env vars below - also being kept rather than removed.
+- Vercel env vars `FOOTBALL_DATA_API_KEY`, `BLOB_READ_WRITE_TOKEN`, `CRON_SECRET` are unused by the current site but kept for the same future-revival reason as the Blob store above.
+- The project was temporarily on the Vercel Pro plan during the tournament (upgraded May 2026 for the Hobby Blob limit). Confirmed 2026-07-22 that nothing on the team (worldcuptracker + 2 other projects, `change-request` and `drinkstracker`) needs Pro-only features (no Vercel-native cron jobs on any project, single team member, no password-protected previews) - safe to downgrade the whole team back to Hobby whenever desired.
 
 ## IMPORTANT: After every deployment
 
